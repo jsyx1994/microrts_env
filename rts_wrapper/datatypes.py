@@ -92,7 +92,7 @@ class Config:
     max_cycles: Optional[int] = 5000
     period: Optional[int] = 5
     render: Optional[bool] = True
-    auto_port: Optional[bool] = False
+    # auto_port: Optional[bool] = False
     client_port: Optional[int] = 0
     microrts_path: Optional[str] = ""
     microrts_repo_path: Optional[str] = ""

@@ -10,6 +10,7 @@ class MicroRts(gym.Env):
     java_client = None
     port = None
     conn = None
+    server_socket = None
 
     def __init__(self, config=''):
         """
@@ -18,7 +19,7 @@ class MicroRts(gym.Env):
         self.config = config
         if config:
             self.init_server()
-            self.init_client()
+            # self.init_client()
             print(config)
             print(MicroRts.reward_range)
             self.establish_connection()
@@ -41,17 +42,26 @@ class MicroRts(gym.Env):
             stdin=PIPE,
             stdout=PIPE
         )
+        stdout, stderr = self.java_client.communicate()
+        print(stdout.decode("utf-8"))
 
     def init_server(self):
         self.port = get_available_port()
         s = socket.socket()
-        s.bind(self.config.client_ip, self.config.client_port)
-        s.listen(5)
-        self.conn, address_info = s.accept()
+        # s.bind((self.config.client_ip, self.port))
+
+        # this is for debug
+        s.bind((self.config.client_ip, 9898))
+
+        self.server_socket = s
 
     def establish_connection(self):
-        stdout, stderr = self.java_client.communicate()
-        print(stdout.decode("utf-8"))
+
+        self.server_socket.listen(5)
+        self.conn, address_info = self.server_socket.accept()
+        print('Waiting for Java client connection...')
+        echo_back = self._send_msg('hello there')
+        print(echo_back)
         # print(stderr)
 
     def _send_msg(self, msg: str):
@@ -59,7 +69,8 @@ class MicroRts(gym.Env):
             self.conn.send(('%s\n' % msg).encode('utf-8'))
         except Exception as err:
             print("An error has occured: ", err)
-        return self.conn.recv(4096).decode('utf-8')
+        raw = self.conn.recv(10240)
+        return raw.decode('utf-8')
 
 
     def step(self, action):

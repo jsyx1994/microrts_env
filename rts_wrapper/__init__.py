@@ -26,7 +26,7 @@ register(
         ai2_type='passive',
         map_path='maps/16x16/basesWorkers16x16.xml',
         render=True,
-        auto_port=True,
+        # auto_port=True,
         microrts_path='~/microrts_env',
 
     )}
