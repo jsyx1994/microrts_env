@@ -1,19 +1,21 @@
 import gym
 import os
 from subprocess import Popen, PIPE
+import socket
 from rts_wrapper.utils.socket_utils import get_available_port
 from rts_wrapper import base_dir_path
 
 class MicroRts(gym.Env):
+    config = None
+    java_client = None
+    port = None
+    conn = None
 
     def __init__(self, config=''):
         """
         setting the client and server socket
         """
         self.config = config
-        self.java_client = None
-        self.port = ''
-
         if config:
             self.init_server()
             self.init_client()
@@ -42,11 +44,22 @@ class MicroRts(gym.Env):
 
     def init_server(self):
         self.port = get_available_port()
+        s = socket.socket()
+        s.bind(self.config.client_ip, self.config.client_port)
+        s.listen(5)
+        self.conn, address_info = s.accept()
 
     def establish_connection(self):
         stdout, stderr = self.java_client.communicate()
         print(stdout.decode("utf-8"))
         # print(stderr)
+
+    def _send_msg(self, msg: str):
+        try:
+            self.conn.send(('%s\n' % msg).encode('utf-8'))
+        except Exception as err:
+            print("An error has occured: ", err)
+        return self.conn.recv(4096).decode('utf-8')
 
 
     def step(self, action):
