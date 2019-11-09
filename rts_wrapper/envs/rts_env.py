@@ -7,9 +7,9 @@ from rts_wrapper import base_dir_path
 
 class MicroRts(gym.Env):
     config = None
-    java_client = None
     port = None
     conn = None
+    server_socket = None
 
     def __init__(self, config=''):
         """
@@ -18,7 +18,7 @@ class MicroRts(gym.Env):
         self.config = config
         if config:
             self.init_server()
-            self.init_client()
+            # self.init_client()
             print(config)
             print(MicroRts.reward_range)
             self.establish_connection()
@@ -36,22 +36,26 @@ class MicroRts(gym.Env):
             "more",
             "options"
         ]
-        self.java_client = Popen(
+        java_client = Popen(
             setup_commands,
             stdin=PIPE,
             stdout=PIPE
         )
+        stdout, stderr = java_client.communicate()
+        print(stdout.decode("utf-8"))
 
     def init_server(self):
         self.port = get_available_port()
-        s = socket.socket()
-        s.bind(self.config.client_ip, self.config.client_port)
-        s.listen(5)
-        self.conn, address_info = s.accept()
+        self.server_socket = socket.socket()
+        self.server_socket.bind((self.config.client_ip, 9898))
 
     def establish_connection(self):
-        stdout, stderr = self.java_client.communicate()
-        print(stdout.decode("utf-8"))
+        self.server_socket.listen(5)
+        print("Waiting Java client connection...")
+        self.conn, address_info = self.server_socket.accept()
+        print(self._send_msg('hello there'))
+        print(self._send_msg('hello there'))
+        print(self._send_msg('hello there'))
         # print(stderr)
 
     def _send_msg(self, msg: str):

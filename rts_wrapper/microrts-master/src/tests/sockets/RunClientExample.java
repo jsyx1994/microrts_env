@@ -40,10 +40,10 @@ public class RunClientExample {
         int PERIOD = 20;
         boolean gameover = false;
         
-//        SocketAI.DEBUG = 1;
-//        AI ai1 = new SocketAI(100,0, serverIP, serverPort, SocketAI.LANGUAGE_XML, utt);
+//        GymSocketAI.DEBUG = 1;
+//        AI ai1 = new GymSocketAI(100,0, serverIP, serverPort, GymSocketAI.LANGUAGE_XML, utt);
         AI ai1 = new SocketAI(100,0, serverIP, serverPort, SocketAI.LANGUAGE_JSON, utt);
-//        AI ai2 = new SocketAI(100,0, serverIP, serverPort, SocketAI.LANGUAGE_XML, utt);
+//        AI ai2 = new GymSocketAI(100,0, serverIP, serverPort, GymSocketAI.LANGUAGE_XML, utt);
         AI ai2 = new RandomBiasedAI();
         
         ai1.reset();

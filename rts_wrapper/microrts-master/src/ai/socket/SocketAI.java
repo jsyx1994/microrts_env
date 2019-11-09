@@ -78,7 +78,7 @@ public class SocketAI extends AIWithComputationBudget {
             while(!in_pipe.ready());
             while(in_pipe.ready()) in_pipe.readLine();
 
-            if (DEBUG>=1) System.out.println("SocketAI: welcome message received");
+            if (DEBUG>=1) System.out.println("GymSocketAI: welcome message received");
             reset();
         }catch(Exception e) {
             e.printStackTrace();
@@ -86,7 +86,7 @@ public class SocketAI extends AIWithComputationBudget {
     }
 
     /**
-     * Creates a SocketAI from an existing socket.
+     * Creates a GymSocketAI from an existing socket.
      * @param mt The time budget in milliseconds.
      * @param mi The iterations budget in milliseconds
      * @param a_utt The unit type table.
@@ -108,7 +108,7 @@ public class SocketAI extends AIWithComputationBudget {
         while(!in_pipe.ready());
         while(in_pipe.ready()) in_pipe.readLine();
 
-        if (DEBUG>=1) System.out.println("SocketAI: welcome message received");
+        if (DEBUG>=1) System.out.println("GymSocketAI: welcome message received");
             
         reset();
     }
@@ -121,13 +121,13 @@ public class SocketAI extends AIWithComputationBudget {
             out_pipe.append("budget " + TIME_BUDGET + " " + ITERATIONS_BUDGET + "\n");
             out_pipe.flush();
 
-            if (DEBUG>=1) System.out.println("SocketAI: budgetd sent, waiting for ack");
+            if (DEBUG>=1) System.out.println("GymSocketAI: budgetd sent, waiting for ack");
             
             // wait for ack:
             in_pipe.readLine();
             while(in_pipe.ready()) in_pipe.readLine();
 
-            if (DEBUG>=1) System.out.println("SocketAI: ack received");
+            if (DEBUG>=1) System.out.println("GymSocketAI: ack received");
 
             // send the utt:
             out_pipe.append("utt\n");
@@ -144,14 +144,14 @@ public class SocketAI extends AIWithComputationBudget {
             } else {
                 throw new Exception("Communication language " + communication_language + " not supported!");
             }
-            if (DEBUG>=1) System.out.println("SocketAI: UTT sent, waiting for ack");
+            if (DEBUG>=1) System.out.println("GymSocketAI: UTT sent, waiting for ack");
             
             // wait for ack:
             in_pipe.readLine();
             
             // read any extra left-over lines
             while(in_pipe.ready()) in_pipe.readLine();
-            if (DEBUG>=1) System.out.println("SocketAI: ack received");
+            if (DEBUG>=1) System.out.println("GymSocketAI: ack received");
 
         }catch(Exception e) {
             e.printStackTrace();
