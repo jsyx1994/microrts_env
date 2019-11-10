@@ -9,18 +9,18 @@ package gym;
 import ai.core.AI;
 import ai.core.AIWithComputationBudget;
 import ai.core.ParameterSpecification;
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
-import java.io.StringReader;
+
+import java.io.*;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
+
 import org.jdom.Element;
 import org.jdom.input.SAXBuilder;
-import rts.GameState;
-import rts.PlayerAction;
+import rts.*;
+import rts.units.Unit;
 import rts.units.UnitTypeTable;
+import util.Pair;
 import util.XMLWriter;
 
 /**
@@ -98,7 +98,10 @@ public class GymSocketAI extends AIWithComputationBudget {
         return new GymSocketAI(mt, mi, a_utt, a_language, socket);
     }
 
-
+    public void acknowledge(){
+        out_pipe.append("Client: ack!");
+        out_pipe.flush();
+    }
     public void connectToServer() throws Exception {
         // Make connection and initialize streams
         socket = new Socket(serverAddress, serverPort);
@@ -111,9 +114,91 @@ public class GymSocketAI extends AIWithComputationBudget {
 
         if (DEBUG>=1) System.out.println("GymSocketAI: welcome message received");
 
-        reset();
+        acknowledge();
+
+//        reset();
     }
 
+
+
+    public void reset(GameState gs, int player){
+        // according to gym, reset return will initial game state
+        try {
+            // waiting for command:
+            in_pipe.readLine();
+//            // read any extra left-over lines
+//            while(in_pipe.ready()) in_pipe.readLine();
+//            if (DEBUG>=1) System.out.println("GymSocketAI: reset command received");
+//            acknowledge();
+
+            sendGameState(gs, player, true);
+
+
+
+        }catch(Exception e) {
+            e.printStackTrace();
+        }
+
+    }
+
+    public void sendGameState(GameState gs, int player, boolean reset) throws Exception {
+//        Writer myWriter = new OutputStreamWriter(OutputStream.nullOutputStream());
+        PlayerActionGenerator playerActionGenerator = new PlayerActionGenerator(gs, player);
+        if (reset)
+            out_pipe.append("reset " + player + "\n");
+        else
+            out_pipe.append("gameState " + player + "\n");
+        if (communication_language == LANGUAGE_XML) {
+            XMLWriter w = new XMLWriter(out_pipe, " ");
+            gs.toxml(w);
+            w.getWriter().append("\n");
+            w.flush();
+
+            // wait to get an action:
+//            while(!in_pipe.ready()) {
+//                Thread.sleep(0);
+//                if (DEBUG>=1) System.out.println("waiting");
+//            }
+            ;
+        } else if (communication_language == LANGUAGE_JSON) {
+            out_pipe.write("{");
+
+            out_pipe.write("\"validActions\":");
+            out_pipe.write("[");
+            boolean first1 = true;
+            for (Pair<Unit, List<UnitAction>> uua: playerActionGenerator.getChoices()) {
+                if (!first1) out_pipe.write(",");
+                first1 = false;
+                out_pipe.write("{");
+
+                out_pipe.write("\"unit\":");
+                uua.m_a.toJSON(out_pipe);
+                out_pipe.write(",");
+                out_pipe.write("\"unitActions\":[");
+                boolean first = true;
+                for (UnitAction ua: uua.m_b){
+                    if (!first) out_pipe.write(" ,");
+                    ua.toJSON(out_pipe);
+                    first = false;
+                }
+                out_pipe.write("]");
+                out_pipe.write("}");
+
+            }
+
+            out_pipe.write("],");
+
+            out_pipe.write("\"gs\":");
+            gs.toJSON(out_pipe);
+
+
+            out_pipe.write("}");
+            out_pipe.append("\n");
+            out_pipe.flush();
+        } else {
+            throw new Exception("Communication language " + communication_language + " not supported!");
+        }
+    }
 
     @Override
     public void reset() {

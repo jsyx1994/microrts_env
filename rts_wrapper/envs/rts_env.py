@@ -1,9 +1,14 @@
 import gym
 import os
+from gym import Space, spaces
 from subprocess import Popen, PIPE
 import socket
 from rts_wrapper.utils.socket_utils import get_available_port
-from rts_wrapper import base_dir_path
+import json
+from rts_wrapper.datatypes import *
+from dacite import from_dict
+from .space import DictSpace
+
 
 class MicroRts(gym.Env):
     config = None
@@ -12,9 +17,11 @@ class MicroRts(gym.Env):
     server_socket = None
 
     def __init__(self, config=''):
-        """
-        setting the client and server socket
-        """
+        self.action_space = DictSpace({
+            'a': spaces.Discrete(10),
+            'b': spaces.Discrete(3)
+        })
+
         self.config = config
         if config:
             self.init_server()
@@ -30,9 +37,10 @@ class MicroRts(gym.Env):
         setup_commands = [
             "java",
             "-jar",
-            os.path.join(os.path.expanduser('~/microrts_env/rts_wrapper'), 'microrts-master/out/artifacts/microrts_master_jar/microrts-master.jar'),
+            os.path.join(os.path.expanduser('~/microrts_env/rts_wrapper'),
+                         'microrts-master/out/artifacts/microrts_master_jar/microrts-master.jar'),
             "--port", str(self.port),
-            "--map",  os.path.join(os.path.expanduser(self.config.microrts_path), self.config.map_path),
+            "--map", os.path.join(os.path.expanduser(self.config.microrts_path), self.config.map_path),
             "more",
             "options"
         ]
@@ -51,12 +59,10 @@ class MicroRts(gym.Env):
 
     def establish_connection(self):
         self.server_socket.listen(5)
-        print("Waiting Java client connection...")
+        print("Wait for Java client connection...")
         self.conn, address_info = self.server_socket.accept()
-        print(self._send_msg('hello there'))
-        print(self._send_msg('hello there'))
-        print(self._send_msg('hello there'))
-        # print(stderr)
+        print("Server: Send welcome msg to client...")
+        print(self._send_msg("Welcome meg sent!"))
 
     def _send_msg(self, msg: str):
         try:
@@ -65,12 +71,35 @@ class MicroRts(gym.Env):
             print("An error has occured: ", err)
         return self.conn.recv(4096).decode('utf-8')
 
-
     def step(self, action):
+        """
+        :param action: '{"unitID": "", "unitAction":{"type":"", "parameter": -1, "x":-1,"y":-1, "unitType":""}}'
+        :return: observation, reward, done, info[List[Unit]]
+        """
+        print(self._send_msg('[]'))
         pass
 
     def reset(self):
-        pass
+        print("Server: Send reset command...")
+        raw = self._send_msg('reset')
+        print(raw)
+        gs_wrapper = from_dict(data_class=GsWrapper, data=json.loads(raw.split('\n')[1]))
+        unit_actions = list(gs_wrapper.validActions)
+        return None, None, False, {"unit_valid_actions": unit_actions}
 
     def render(self, mode='human'):
         pass
+
+    @staticmethod
+    def sample(unit_valid_actions: List[UnitValidAction]):
+        pa = []
+        import random
+        for uas in unit_valid_actions:
+            x = random.choice(uas.unitActions)
+            pa.append(asdict(PlayerAction(
+                unitID=uas.unit.ID,
+                unitAction=x
+            )))
+        print(json.dumps(pa))
+        return pa
+
