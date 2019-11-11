@@ -68,7 +68,7 @@ public class UnitTypeTable  {
      * move conflict resolution as {@link #MOVE_CONFLICT_RESOLUTION_CANCEL_BOTH} 
      */
     public UnitTypeTable() {
-        setUnitTypeTable(VERSION_ORIGINAL, MOVE_CONFLICT_RESOLUTION_CANCEL_BOTH);
+        setUnitTypeTable(VERSION_ORIGINAL, MOVE_CONFLICT_RESOLUTION_CANCEL_ALTERNATING);
     }
     
     /**

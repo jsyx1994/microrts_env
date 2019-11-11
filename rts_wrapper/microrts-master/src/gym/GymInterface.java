@@ -19,8 +19,8 @@ import rts.units.UnitTypeTable;
 public class GymInterface {
     private static int maxEpisodes = 100000;
     private static int timeBudget = 100;
-    private static int maxCycles = 5000;
-    private static int period = 20;
+    private static int maxCycles = 2000;
+    private static int period = 5;
     private static long port = 9898;
     private static String map = System.getProperty("user.home") + "/microrts_env/maps/16x16/basesWorkers16x16.xml";
 
@@ -49,10 +49,10 @@ public class GymInterface {
 //        AI ai1 = new WorkerRush(utt, new BFSPathFinding());
 //        AI ai1 = new GymSocketAI(100,0, "127.0.0.1", 9898, GymSocketAI.LANGUAGE_XML, utt);
         GymSocketAI ai1 = new GymSocketAI(timeBudget, 0, "127.0.0.1", (int) port, GymSocketAI.LANGUAGE_JSON, utt);
+//        AI ai1 = new RandomAI();
+        AI ai2 = new RandomAI();
 
-        AI ai2 = new WorkerRush(utt);
-
-
+//        ai1.reset();
         ai1.reset(gs, 0);
         ai2.reset();
 
@@ -62,6 +62,7 @@ public class GymInterface {
 //        ai1.preGameAnalysis(gs, 1000, ".");
 //        ai2.preGameAnalysis(gs, 1000, ".");
 
+        boolean done = false;   //gym signal
         long nextTimeToUpdate = System.currentTimeMillis() + period;
         do {
             if (System.currentTimeMillis() >= nextTimeToUpdate) {
@@ -72,6 +73,9 @@ public class GymInterface {
 
                 // simulate:
                 gameover = gs.cycle();
+                done = gameover || gs.getTime() >= maxCycles;
+                ai1.sendGameState(gs,0,false,done);
+
                 w.repaint();
                 nextTimeToUpdate += period;
             } else {
@@ -81,8 +85,8 @@ public class GymInterface {
                     e.printStackTrace();
                 }
             }
-        } while (!gameover && gs.getTime() < maxCycles);
+        } while (!done);
 
-        System.out.println("Game Over");
+        System.out.println("Done");
     }
 }

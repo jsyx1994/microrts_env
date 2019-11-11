@@ -22,6 +22,7 @@ import rts.units.Unit;
 import rts.units.UnitTypeTable;
 import util.Pair;
 import util.XMLWriter;
+import ai.evaluation.*;
 
 /**
  *
@@ -131,7 +132,7 @@ public class GymSocketAI extends AIWithComputationBudget {
 //            if (DEBUG>=1) System.out.println("GymSocketAI: reset command received");
 //            acknowledge();
 
-            sendGameState(gs, player, true);
+            sendGameState(gs, player, true, false);
 
 
 
@@ -141,9 +142,11 @@ public class GymSocketAI extends AIWithComputationBudget {
 
     }
 
-    public void sendGameState(GameState gs, int player, boolean reset) throws Exception {
+    public void sendGameState(GameState gs, int player, boolean reset, boolean done) throws Exception {
 //        Writer myWriter = new OutputStreamWriter(OutputStream.nullOutputStream());
-        PlayerActionGenerator playerActionGenerator = new PlayerActionGenerator(gs, player);
+        SimpleSqrtEvaluationFunction simpleSqrtEvaluationFunction = new SimpleSqrtEvaluationFunction();
+        simpleSqrtEvaluationFunction.evaluate(0,1,gs);
+
         if (reset)
             out_pipe.append("reset " + player + "\n");
         else
@@ -161,12 +164,22 @@ public class GymSocketAI extends AIWithComputationBudget {
 //            }
             ;
         } else if (communication_language == LANGUAGE_JSON) {
+            List<Pair<Unit,List<UnitAction>>> validActions;
+            try {
+                PlayerActionGenerator playerActionGenerator = new PlayerActionGenerator(gs, player);
+                validActions = playerActionGenerator.getChoices();
+            }catch (Exception e){
+                validActions = new ArrayList<>();
+            }
+
+//            PlayerActionGenerator playerActionGenerator = new PlayerActionGenerator(gs, player);
             out_pipe.write("{");
 
+            out_pipe.write("\"done\":" + done + ",");
             out_pipe.write("\"validActions\":");
             out_pipe.write("[");
             boolean first1 = true;
-            for (Pair<Unit, List<UnitAction>> uua: playerActionGenerator.getChoices()) {
+            for (Pair<Unit, List<UnitAction>> uua: validActions) {
                 if (!first1) out_pipe.write(",");
                 first1 = false;
                 out_pipe.write("{");
@@ -248,18 +261,13 @@ public class GymSocketAI extends AIWithComputationBudget {
     @Override
     public PlayerAction getAction(int player, GameState gs) throws Exception {
         // send the game state:
-        out_pipe.append("getAction " + player + "\n");
+//        out_pipe.append("getAction " + player + "\n");
         if (communication_language == LANGUAGE_XML) {
-            XMLWriter w = new XMLWriter(out_pipe, " ");
-            gs.toxml(w);
-            w.getWriter().append("\n");
-            w.flush();
+//            XMLWriter w = new XMLWriter(out_pipe, " ");
+//            gs.toxml(w);
+//            w.getWriter().append("\n");
+//            w.flush();
 
-            // wait to get an action:
-//            while(!in_pipe.ready()) {
-//                Thread.sleep(0);
-//                if (DEBUG>=1) System.out.println("waiting");
-//            }
 
             // parse the action:
             String actionString = in_pipe.readLine();
@@ -269,12 +277,9 @@ public class GymSocketAI extends AIWithComputationBudget {
             pa.fillWithNones(gs, player, 10);
             return pa;
         } else if (communication_language == LANGUAGE_JSON) {
-            gs.toJSON(out_pipe);
-            out_pipe.append("\n");
-            out_pipe.flush();
-
-            // wait to get an action:
-            //while(!in_pipe.ready());
+//            gs.toJSON(out_pipe);
+//            out_pipe.append("\n");
+//            out_pipe.flush();
 
             // parse the action:
             String actionString = in_pipe.readLine();

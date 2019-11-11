@@ -15,7 +15,7 @@ ACTION_PARAMETER_DIRECTION_DOWN = 2
 ACTION_PARAMETER_DIRECTION_LEFT = 3
 
 @dataclass
-class MicrortsMessage:
+class LearningSignal:
     reward: float
     observation: List[List[List[int]]]
     done: bool
@@ -121,6 +121,8 @@ class UnitValidAction:
 class GsWrapper:
     gs: GameState
     validActions: List[UnitValidAction]
+    done: Optional[bool] = False
+
 
 @dataclass
 class PlayerAction:

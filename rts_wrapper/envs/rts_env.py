@@ -8,6 +8,7 @@ import json
 from rts_wrapper.datatypes import *
 from dacite import from_dict
 from .space import DictSpace
+import numpy as np
 
 
 class MicroRts(gym.Env):
@@ -69,37 +70,113 @@ class MicroRts(gym.Env):
             self.conn.send(('%s\n' % msg).encode('utf-8'))
         except Exception as err:
             print("An error has occured: ", err)
-        return self.conn.recv(4096).decode('utf-8')
+        return self.conn.recv(65536).decode('utf-8')
 
-    def step(self, action):
+    def signal_wrapper(self, raw):
+        curr_player = int(raw.split('\n')[0].split()[1])
+        print(curr_player)
+        gs_wrapper = from_dict(data_class=GsWrapper, data=json.loads(raw.split('\n')[1]))
+        observation = self.parse_game_state(gs_wrapper.gs, curr_player)
+        reward = None
+        done = gs_wrapper.done
+        info = {
+            "unit_valid_actions": gs_wrapper.validActions
+        }
+        return observation, reward, done, info
+
+    def step(self, action: List[Any]):
         """
         :param action: '{"unitID": "", "unitAction":{"type":"", "parameter": -1, "x":-1,"y":-1, "unitType":""}}'
         :return: observation, reward, done, info[List[Unit]]
+        info:{
+            "unit_valid_actions":
+        }
         """
-        print(self._send_msg('[]'))
-        pass
+        # print(self._send_msg('[]'))
+
+        raw = self._send_msg(json.dumps(action))
+        return self.signal_wrapper(raw)
 
     def reset(self):
         print("Server: Send reset command...")
         raw = self._send_msg('reset')
-        print(raw)
-        gs_wrapper = from_dict(data_class=GsWrapper, data=json.loads(raw.split('\n')[1]))
-        unit_actions = list(gs_wrapper.validActions)
-        return None, None, False, {"unit_valid_actions": unit_actions}
+        return self.signal_wrapper(raw)
 
     def render(self, mode='human'):
         pass
 
     @staticmethod
-    def sample(unit_valid_actions: List[UnitValidAction]):
+    def sample(unit_valid_actions: List[UnitValidAction]) -> List[PlayerAction]:
         pa = []
         import random
         for uas in unit_valid_actions:
             x = random.choice(uas.unitActions)
-            pa.append(asdict(PlayerAction(
-                unitID=uas.unit.ID,
-                unitAction=x
-            )))
+            pa.append(
+                asdict(PlayerAction(
+                    unitID=uas.unit.ID,
+                    unitAction=x
+                ))
+            )
         print(json.dumps(pa))
         return pa
 
+    @staticmethod
+    def parse_game_state(gs: GameState, player):
+        current_player = player
+
+        # Used for type indexing
+        utt = ['Base', 'Barracks', 'Worker', 'Light', 'Heavy', 'Ranged']
+        type_idx = {}
+        for i, ut in zip(range(len(utt)), utt):
+            type_idx[ut] = i
+
+        time = gs.time
+        pgs = gs.pgs
+        actions = gs.actions
+        w = pgs.width
+        h = pgs.height
+        units = pgs.units
+
+        # Initialization of spatial features
+        spatial_features = np.zeros((18, h, w))
+
+        # channel_wall
+        spatial_features[0] = np.array([int(x) for x in pgs.terrain]).reshape((1, h, w))
+
+        # other channels
+        channel_resource = spatial_features[1]
+        channel_self_type = spatial_features[2:8]
+        channel_self_hp = spatial_features[8]
+        channel_self_resource_carried = spatial_features[9]
+        channel_enemy_type = spatial_features[10:16]
+        channel_enemy_hp = spatial_features[16]
+        channel_enemy_resource_carried = spatial_features[17]
+
+        for unit in units:
+            _player = unit.player
+            _type = unit.type
+            x = unit.x
+            y = unit.y
+            # neutral
+            if _player == -1:
+                channel_resource[x][y] = unit.resources
+                # channel_resource[x][y] = 1
+
+            elif _player == current_player:
+                # get the index of this type
+                idx = type_idx[_type]
+                channel_self_type[idx][x][y] = 1
+                channel_self_hp[x][y] = unit.hitpoints
+                channel_self_resource_carried[x][y] = unit.resources
+
+            else:
+                idx = type_idx[_type]
+                channel_enemy_type[idx][x][y] = 1
+                channel_enemy_hp[x][y] = unit.hitpoints
+                channel_enemy_resource_carried[x][y] = unit.resources
+        # print(spatial_features)
+        # print(spatial_features.shape)
+        return spatial_features
+
+    def close(self):
+        self.conn.close()
