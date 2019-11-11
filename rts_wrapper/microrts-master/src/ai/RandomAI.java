@@ -40,6 +40,7 @@ public class RandomAI extends AI {
         try {
             if (!gs.canExecuteAnyAction(player)) return new PlayerAction();
             PlayerActionGenerator pag = new PlayerActionGenerator(gs, player);
+//            System.out.println(pag.toString());
             return pag.getRandom();
         }catch(Exception e) {
             // The only way the player action generator returns an exception is if there are no units that

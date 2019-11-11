@@ -1,10 +1,8 @@
 package gym;
 
 import ai.abstraction.WorkerRush;
-import ai.abstraction.pathfinding.BFSPathFinding;
 import ai.core.AI;
 import ai.*;
-import ai.socket.SocketAI;
 import gui.PhysicalGameStatePanel;
 
 import javax.swing.JFrame;
@@ -14,20 +12,19 @@ import rts.PhysicalGameState;
 import rts.PlayerAction;
 import rts.units.UnitTypeTable;
 
-import java.util.ArrayList;
-import java.util.List;
-
 /**
  * @author santi, Tom
  */
 
 public class GymInterface {
-    private static int MAXCYCLES = 5000;
-    private static int PERIOD = 20;
+    private static int maxEpisodes = 100000;
+    private static int timeBudget = 100;
+    private static int maxCycles = 5000;
+    private static int period = 20;
     private static long port = 9898;
     private static String map = System.getProperty("user.home") + "/microrts_env/maps/16x16/basesWorkers16x16.xml";
 
-    
+
     public static void main(String args[]) throws Exception {
 //        for (int i = 0; i < args.length; ++i){
 //            System.out.println(args[i]);
@@ -50,11 +47,13 @@ public class GymInterface {
         boolean gameover = false;
 
 //        AI ai1 = new WorkerRush(utt, new BFSPathFinding());
-//        AI ai1 = new SocketAI(100,0, "127.0.0.1", 9898, SocketAI.LANGUAGE_XML, utt);
-        AI ai1 = new GymSocketAI(100, 0, "127.0.0.1", (int)port, SocketAI.LANGUAGE_JSON, utt);
-        AI ai2 = new RandomBiasedAI();
+//        AI ai1 = new GymSocketAI(100,0, "127.0.0.1", 9898, GymSocketAI.LANGUAGE_XML, utt);
+        GymSocketAI ai1 = new GymSocketAI(timeBudget, 0, "127.0.0.1", (int) port, GymSocketAI.LANGUAGE_JSON, utt);
 
-        ai1.reset();
+        AI ai2 = new WorkerRush(utt);
+
+
+        ai1.reset(gs, 0);
         ai2.reset();
 
         JFrame w = PhysicalGameStatePanel.newVisualizer(gs, 640, 640, false, PhysicalGameStatePanel.COLORSCHEME_BLACK);
@@ -63,7 +62,7 @@ public class GymInterface {
 //        ai1.preGameAnalysis(gs, 1000, ".");
 //        ai2.preGameAnalysis(gs, 1000, ".");
 
-        long nextTimeToUpdate = System.currentTimeMillis() + PERIOD;
+        long nextTimeToUpdate = System.currentTimeMillis() + period;
         do {
             if (System.currentTimeMillis() >= nextTimeToUpdate) {
                 PlayerAction pa1 = ai1.getAction(0, gs);
@@ -74,7 +73,7 @@ public class GymInterface {
                 // simulate:
                 gameover = gs.cycle();
                 w.repaint();
-                nextTimeToUpdate += PERIOD;
+                nextTimeToUpdate += period;
             } else {
                 try {
                     Thread.sleep(1);
@@ -82,7 +81,7 @@ public class GymInterface {
                     e.printStackTrace();
                 }
             }
-        } while (!gameover && gs.getTime() < MAXCYCLES);
+        } while (!gameover && gs.getTime() < maxCycles);
 
         System.out.println("Game Over");
     }

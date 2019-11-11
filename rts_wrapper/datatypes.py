@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
 from typing import List, Any, Dict, Optional
 
 ACTION_TYPE_NONE = 0
@@ -54,14 +54,14 @@ class GameInfo:
 
 @dataclass
 class Player:
-    id: int
+    ID: int
     resources: int
 
 
 @dataclass
 class Unit:
     type: str
-    id: int
+    ID: int
     player: int
     x: int
     y: int
@@ -103,3 +103,38 @@ class Config:
     window_size: Optional[int] = 1
     evaluation_filename: Optional[str] = ""
     frame_skip: Optional[int] = 0
+
+@dataclass
+class UnitAction:
+    type: Optional[int] = ACTION_TYPE_NONE
+    parameter: Optional[int] = ACTION_PARAMETER_DIRECTION_NONE
+    unitType: Optional[str] = ""
+    x: Optional[int] = -1
+    y: Optional[int] = -1
+
+@dataclass
+class UnitValidAction:
+    unit: Unit
+    unitActions: List[UnitAction]
+
+@dataclass
+class GsWrapper:
+    gs: GameState
+    validActions: List[UnitValidAction]
+
+@dataclass
+class PlayerAction:
+    unitID: int
+    unitAction: UnitAction
+
+if __name__ == '__main__':
+    base = Unit(
+        type="Base",
+        ID=1,
+        player=0,
+        x=2,
+        y=2,
+        resources=25,
+        hitpoints=10
+    )
+    x = asdict(base)

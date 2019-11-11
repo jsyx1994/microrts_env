@@ -30,7 +30,7 @@ public class GameVisualSimulationWithSocketAI {
         
 //        AI ai1 = new WorkerRush(utt, new BFSPathFinding());        
         AI ai1 = new SocketAI(100,0, "127.0.0.1", 9898, SocketAI.LANGUAGE_XML, utt);
-//        AI ai1 = new SocketAI(100,0, "127.0.0.1", 9898, SocketAI.LANGUAGE_JSON, utt);
+//        AI ai1 = new GymSocketAI(100,0, "127.0.0.1", 9898, GymSocketAI.LANGUAGE_JSON, utt);
         AI ai2 = new RandomBiasedAI();
         
         ai1.reset();
