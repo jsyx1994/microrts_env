@@ -2,13 +2,11 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="3b89092c-195d-42ef-b344-e672f2348028" name="Default Changelist" comment="">
+      <change beforePath="$PROJECT_DIR$/../datatypes.py" beforeDir="false" afterPath="$PROJECT_DIR$/../datatypes.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../envs/rts_env.py" beforeDir="false" afterPath="$PROJECT_DIR$/../envs/rts_env.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/gym/GymInterface.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/gym/GymInterface.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/gym/GymSocketAI.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/gym/GymSocketAI.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/rts/units/UnitTypeTable.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/rts/units/UnitTypeTable.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../test.py" beforeDir="false" afterPath="$PROJECT_DIR$/../../test.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />

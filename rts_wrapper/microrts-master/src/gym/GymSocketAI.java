@@ -25,7 +25,6 @@ import util.XMLWriter;
 import ai.evaluation.*;
 
 /**
- *
  * @author santi
  */
 public class GymSocketAI extends AIWithComputationBudget {
@@ -44,11 +43,11 @@ public class GymSocketAI extends AIWithComputationBudget {
     PrintWriter out_pipe = null;
 
     public GymSocketAI(UnitTypeTable a_utt) {
-        super(100,-1);
+        super(100, -1);
         utt = a_utt;
         try {
             connectToServer();
-        }catch(Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
@@ -62,7 +61,7 @@ public class GymSocketAI extends AIWithComputationBudget {
         utt = a_utt;
         try {
             connectToServer();
-        }catch(Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
@@ -77,32 +76,34 @@ public class GymSocketAI extends AIWithComputationBudget {
             out_pipe = new PrintWriter(socket.getOutputStream(), true);
 
             // Consume the initial welcoming messages from the server
-            while(!in_pipe.ready());
-            while(in_pipe.ready()) in_pipe.readLine();
+            while (!in_pipe.ready()) ;
+            while (in_pipe.ready()) in_pipe.readLine();
 
-            if (DEBUG>=1) System.out.println("GymSocketAI: welcome message received");
+            if (DEBUG >= 1) System.out.println("GymSocketAI: welcome message received");
             reset();
-        }catch(Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
     /**
      * Creates a GymSocketAI from an existing socket.
-     * @param mt The time budget in milliseconds.
-     * @param mi The iterations budget in milliseconds
-     * @param a_utt The unit type table.
+     *
+     * @param mt         The time budget in milliseconds.
+     * @param mi         The iterations budget in milliseconds
+     * @param a_utt      The unit type table.
      * @param a_language The communication layer to use.
-     * @param socket The socket the ai will communicate over.
+     * @param socket     The socket the ai will communicate over.
      */
     public static GymSocketAI createFromExistingSocket(int mt, int mi, UnitTypeTable a_utt, int a_language, Socket socket) {
         return new GymSocketAI(mt, mi, a_utt, a_language, socket);
     }
 
-    public void acknowledge(){
+    public void acknowledge() {
         out_pipe.append("Client: ack!");
         out_pipe.flush();
     }
+
     public void connectToServer() throws Exception {
         // Make connection and initialize streams
         socket = new Socket(serverAddress, serverPort);
@@ -110,10 +111,10 @@ public class GymSocketAI extends AIWithComputationBudget {
         out_pipe = new PrintWriter(socket.getOutputStream(), true);
 
         // Consume the initial welcoming messages from the server
-        while(!in_pipe.ready());
-        while(in_pipe.ready()) in_pipe.readLine();
+        while (!in_pipe.ready()) ;
+        while (in_pipe.ready()) in_pipe.readLine();
 
-        if (DEBUG>=1) System.out.println("GymSocketAI: welcome message received");
+        if (DEBUG >= 1) System.out.println("GymSocketAI: welcome message received");
 
         acknowledge();
 
@@ -121,8 +122,7 @@ public class GymSocketAI extends AIWithComputationBudget {
     }
 
 
-
-    public void reset(GameState gs, int player){
+    public void reset(GameState gs, int player) {
         // according to gym, reset return will initial game state
         try {
             // waiting for command:
@@ -135,8 +135,7 @@ public class GymSocketAI extends AIWithComputationBudget {
             sendGameState(gs, player, true, false);
 
 
-
-        }catch(Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
 
@@ -145,7 +144,11 @@ public class GymSocketAI extends AIWithComputationBudget {
     public void sendGameState(GameState gs, int player, boolean reset, boolean done) throws Exception {
 //        Writer myWriter = new OutputStreamWriter(OutputStream.nullOutputStream());
         SimpleSqrtEvaluationFunction simpleSqrtEvaluationFunction = new SimpleSqrtEvaluationFunction();
-        simpleSqrtEvaluationFunction.evaluate(0,1,gs);
+        int maxPlayer = player;
+        int minPlayer = maxPlayer == 1 ? 0 : 1;
+
+        //reward design need to consider further!
+        double reward = simpleSqrtEvaluationFunction.evaluate(maxPlayer ,minPlayer, gs);
 
         if (reset)
             out_pipe.append("reset " + player + "\n");
@@ -164,22 +167,23 @@ public class GymSocketAI extends AIWithComputationBudget {
 //            }
             ;
         } else if (communication_language == LANGUAGE_JSON) {
-            List<Pair<Unit,List<UnitAction>>> validActions;
+            List<Pair<Unit, List<UnitAction>>> validActions;
             try {
                 PlayerActionGenerator playerActionGenerator = new PlayerActionGenerator(gs, player);
                 validActions = playerActionGenerator.getChoices();
-            }catch (Exception e){
+            } catch (Exception e) {
                 validActions = new ArrayList<>();
             }
 
 //            PlayerActionGenerator playerActionGenerator = new PlayerActionGenerator(gs, player);
             out_pipe.write("{");
 
+            out_pipe.write("\"reward\":" + reward + ",");
             out_pipe.write("\"done\":" + done + ",");
             out_pipe.write("\"validActions\":");
             out_pipe.write("[");
             boolean first1 = true;
-            for (Pair<Unit, List<UnitAction>> uua: validActions) {
+            for (Pair<Unit, List<UnitAction>> uua : validActions) {
                 if (!first1) out_pipe.write(",");
                 first1 = false;
                 out_pipe.write("{");
@@ -189,7 +193,7 @@ public class GymSocketAI extends AIWithComputationBudget {
                 out_pipe.write(",");
                 out_pipe.write("\"unitActions\":[");
                 boolean first = true;
-                for (UnitAction ua: uua.m_b){
+                for (UnitAction ua : uua.m_b) {
                     if (!first) out_pipe.write(" ,");
                     ua.toJSON(out_pipe);
                     first = false;
@@ -220,13 +224,13 @@ public class GymSocketAI extends AIWithComputationBudget {
             out_pipe.append("budget " + TIME_BUDGET + " " + ITERATIONS_BUDGET + "\n");
             out_pipe.flush();
 
-            if (DEBUG>=1) System.out.println("GymSocketAI: budgetd sent, waiting for ack");
+            if (DEBUG >= 1) System.out.println("GymSocketAI: budgetd sent, waiting for ack");
 
             // wait for ack:
             in_pipe.readLine();
-            while(in_pipe.ready()) in_pipe.readLine();
+            while (in_pipe.ready()) in_pipe.readLine();
 
-            if (DEBUG>=1) System.out.println("GymSocketAI: ack received");
+            if (DEBUG >= 1) System.out.println("GymSocketAI: ack received");
 
             // send the utt:
             out_pipe.append("utt\n");
@@ -243,16 +247,16 @@ public class GymSocketAI extends AIWithComputationBudget {
             } else {
                 throw new Exception("Communication language " + communication_language + " not supported!");
             }
-            if (DEBUG>=1) System.out.println("GymSocketAI: UTT sent, waiting for ack");
+            if (DEBUG >= 1) System.out.println("GymSocketAI: UTT sent, waiting for ack");
 
             // wait for ack:
             in_pipe.readLine();
 
             // read any extra left-over lines
-            while(in_pipe.ready()) in_pipe.readLine();
-            if (DEBUG>=1) System.out.println("GymSocketAI: ack received");
+            while (in_pipe.ready()) in_pipe.readLine();
+            if (DEBUG >= 1) System.out.println("GymSocketAI: ack received");
 
-        }catch(Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
@@ -271,7 +275,7 @@ public class GymSocketAI extends AIWithComputationBudget {
 
             // parse the action:
             String actionString = in_pipe.readLine();
-            if (DEBUG>=1) System.out.println("action received from server: " + actionString);
+            if (DEBUG >= 1) System.out.println("action received from server: " + actionString);
             Element action_e = new SAXBuilder().build(new StringReader(actionString)).getRootElement();
             PlayerAction pa = PlayerAction.fromXML(action_e, gs, utt);
             pa.fillWithNones(gs, player, 10);
@@ -294,8 +298,7 @@ public class GymSocketAI extends AIWithComputationBudget {
 
 
     @Override
-    public void preGameAnalysis(GameState gs, long milliseconds) throws Exception
-    {
+    public void preGameAnalysis(GameState gs, long milliseconds) throws Exception {
         // send the game state:
         out_pipe.append("preGameAnalysis " + milliseconds + "\n");
         switch (communication_language) {
@@ -324,10 +327,9 @@ public class GymSocketAI extends AIWithComputationBudget {
 
 
     @Override
-    public void preGameAnalysis(GameState gs, long milliseconds, String readWriteFolder) throws Exception
-    {
+    public void preGameAnalysis(GameState gs, long milliseconds, String readWriteFolder) throws Exception {
         // send the game state:
-        out_pipe.append("preGameAnalysis " + milliseconds + "  \""+readWriteFolder+"\"\n");
+        out_pipe.append("preGameAnalysis " + milliseconds + "  \"" + readWriteFolder + "\"\n");
         switch (communication_language) {
             case LANGUAGE_XML:
                 XMLWriter w = new XMLWriter(out_pipe, " ");
@@ -354,8 +356,7 @@ public class GymSocketAI extends AIWithComputationBudget {
 
 
     @Override
-    public void gameOver(int winner) throws Exception
-    {
+    public void gameOver(int winner) throws Exception {
         // send the game state:
         out_pipe.append("gameOver " + winner + "\n");
         out_pipe.flush();

@@ -1,5 +1,6 @@
 from dataclasses import dataclass, asdict
 from typing import List, Any, Dict, Optional
+from enum import Enum, auto
 
 ACTION_TYPE_NONE = 0
 ACTION_TYPE_MOVE = 1
@@ -14,12 +15,59 @@ ACTION_PARAMETER_DIRECTION_RIGHT = 1
 ACTION_PARAMETER_DIRECTION_DOWN = 2
 ACTION_PARAMETER_DIRECTION_LEFT = 3
 
-@dataclass
-class LearningSignal:
-    reward: float
-    observation: List[List[List[int]]]
-    done: bool
-    info: Dict
+# @dataclass
+# class LearningSignal:
+#     reward: float
+#     observation: List[List[List[int]]]
+#     done: bool
+#     info: Dict
+
+
+class BaseAction(Enum):
+    DO_NONE = 0
+    DO_PRODUCE = 1
+
+    ACTION_NUMBER = 2
+
+
+class WorkerActon(Enum):
+    DO_NONE = -1
+
+    # need to convert to valid actions using unit_valid_action according to the specific condition.
+    # example:DO_UP_PROBE: walk up when no obstacles, but attack when enemy
+    DO_UP_PROBE = 0
+    DO_RIGHT_PROBE = 1
+    DO_DOWN_PROBE = 2
+    DO_LEFT_PROBE = 3
+
+    # produce: randomly pick directions
+    DO_LAY_BASE = 4         # type4 unitType:base
+    DO_LAY_BARRACKS = 5     # type4 unitType:barracks
+
+
+class MeleeAction(Enum):
+    DO_NONE = -1
+
+    DO_UP_PROBE = 0
+    DO_RIGHT_PROBE = 1
+    DO_DOWN_PROBE = 2
+    DO_LEFT_PROBE = 3
+
+
+class ArcherAction(Enum):
+    DO_NONE = -1
+
+    DO_UP_PROBE = 0
+    DO_RIGHT_PROBE = 1
+    DO_DOWN_PROBE = 2
+    DO_LEFT_PROBE = 3
+
+    DO_ATTACK_NEAREST = 4   # need java coding
+    DO_ATTACK_WEAKEST = 5
+
+
+
+
 
 @dataclass
 class UnitType:
@@ -120,6 +168,7 @@ class UnitValidAction:
 @dataclass
 class GsWrapper:
     gs: GameState
+    reward: float
     validActions: List[UnitValidAction]
     done: Optional[bool] = False
 
@@ -129,14 +178,7 @@ class PlayerAction:
     unitID: int
     unitAction: UnitAction
 
+
 if __name__ == '__main__':
-    base = Unit(
-        type="Base",
-        ID=1,
-        player=0,
-        x=2,
-        y=2,
-        resources=25,
-        hitpoints=10
-    )
-    x = asdict(base)
+    for name, member in ArcherAction.__members__.items():
+        print(name, member)

@@ -49,7 +49,7 @@ public class GymInterface {
 //        AI ai1 = new WorkerRush(utt, new BFSPathFinding());
 //        AI ai1 = new GymSocketAI(100,0, "127.0.0.1", 9898, GymSocketAI.LANGUAGE_XML, utt);
         GymSocketAI ai1 = new GymSocketAI(timeBudget, 0, "127.0.0.1", (int) port, GymSocketAI.LANGUAGE_JSON, utt);
-//        AI ai1 = new RandomAI();
+//        AI ai2 = new WorkerRush(utt);
         AI ai2 = new RandomAI();
 
 //        ai1.reset();

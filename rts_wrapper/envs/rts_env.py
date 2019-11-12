@@ -9,6 +9,7 @@ from rts_wrapper.datatypes import *
 from dacite import from_dict
 from .space import DictSpace
 import numpy as np
+from rts_wrapper.datatypes import BaseAction, MeleeAction, WorkerActon, ArcherAction
 
 
 class MicroRts(gym.Env):
@@ -19,8 +20,14 @@ class MicroRts(gym.Env):
 
     def __init__(self, config=''):
         self.action_space = DictSpace({
-            'a': spaces.Discrete(10),
-            'b': spaces.Discrete(3)
+            'Base': spaces.Discrete(2),
+            'Barracks': spaces.Discrete(2),
+
+            'Worker': spaces.Discrete(10),
+            'Light': spaces.Discrete(3),
+            'Heavy': spaces.Discrete(3),
+            'Ranged': spaces.Discrete(3),
+
         })
 
         self.config = config
@@ -74,10 +81,9 @@ class MicroRts(gym.Env):
 
     def signal_wrapper(self, raw):
         curr_player = int(raw.split('\n')[0].split()[1])
-        print(curr_player)
         gs_wrapper = from_dict(data_class=GsWrapper, data=json.loads(raw.split('\n')[1]))
         observation = self.parse_game_state(gs_wrapper.gs, curr_player)
-        reward = None
+        reward = gs_wrapper.reward
         done = gs_wrapper.done
         info = {
             "unit_valid_actions": gs_wrapper.validActions
@@ -100,6 +106,7 @@ class MicroRts(gym.Env):
     def reset(self):
         print("Server: Send reset command...")
         raw = self._send_msg('reset')
+        print(raw)
         return self.signal_wrapper(raw)
 
     def render(self, mode='human'):
