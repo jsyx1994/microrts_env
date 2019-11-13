@@ -5,12 +5,13 @@ from subprocess import Popen, PIPE
 import socket
 from rts_wrapper.utils.socket_utils import get_available_port
 import json
-from rts_wrapper.datatypes import *
 from dacite import from_dict
 from .space import DictSpace
 import numpy as np
-from rts_wrapper.datatypes import BaseAction, MeleeAction, WorkerActon, ArcherAction
+from rts_wrapper.datatypes import *
 
+
+action_collection = [BaseAction, BarracksAction, WorkerActon, LightAction, HeavyAction]
 
 class MicroRts(gym.Env):
     config = None
@@ -19,20 +20,26 @@ class MicroRts(gym.Env):
     server_socket = None
 
     def __init__(self, config=''):
-        self.action_space = DictSpace({
-            'Base': spaces.Discrete(2),
-            'Barracks': spaces.Discrete(2),
+        np.random.seed()
+        self.random = np.random
+        self.unit_action_map = {}
+        for action in action_collection:
+            self.unit_action_map[action.__type_name__] = action
 
-            'Worker': spaces.Discrete(10),
-            'Light': spaces.Discrete(3),
-            'Heavy': spaces.Discrete(3),
-            'Ranged': spaces.Discrete(3),
+        self.action_space = DictSpace({
+            'Base': spaces.Discrete(BaseAction.__members__.items().__len__()),
+            'Barracks': spaces.Discrete(BarracksAction.__members__.items().__len__()),
+            'Worker': spaces.Discrete(WorkerActon.__members__.items().__len__()),
+            'Light': spaces.Discrete(LightAction.__members__.items().__len__()),
+            'Heavy': spaces.Discrete(HeavyAction.__members__.items().__len__()),
+            'Ranged': spaces.Discrete(RangedAction.__members__.items().__len__()),
 
         })
 
         self.config = config
         if config:
             self.init_server()
+            # comments the next line then in developer mode
             # self.init_client()
             print(config)
             print(MicroRts.reward_range)
@@ -90,6 +97,73 @@ class MicroRts(gym.Env):
         }
         return observation, reward, done, info
 
+    def network_simulate(self, unit_valid_actions: List[UnitValidAction]) -> List(int, Any):
+        """
+        :param unit_valid_actions:
+        :return: choice for every unit, adding UVA to check validation later
+        """
+        unit_validaction_choices = []
+        for uva in unit_valid_actions:
+            choice = self.random.choice(list(self.unit_action_map[uva.unit.type]))
+            # (choice) BaseAction.DO_NONE.name, BaseAction.DO_NONE.value
+            unit_validaction_choices.append((uva, choice))
+            print(choice)
+        print(self.network_action_translator(unit_validaction_choices))
+
+    def network_action_translator(self, unit_validaction_choices: List[UnitValidAction, Any]) -> List[PlayerAction]:
+        pas = []
+        for uva, choice in unit_validaction_choices:
+            unit = uva.unit
+            valid_actions = uva.unitActions
+
+            valid_directions = [va.parameter for va in valid_actions]
+            pa = PlayerAction(unitID=unit.ID)
+            if unit.type == UNIT_TYPE_NAME_BASE:
+                if choice == BaseAction.DO_NONE:
+                    pa.unitAction.type = ACTION_TYPE_NONE
+
+                elif choice == BaseAction.DO_PRODUCE:
+                    pa.unitAction.type = ACTION_TYPE_PRODUCE
+                    pa.unitAction.parameter = self.random.choice(valid_directions)
+            elif unit.type == UNIT_TYPE_NAME_BARRACKS:
+                if choice == BarracksAction.DO_NONE:
+                    pa.unitAction.type = ACTION_TYPE_NONE
+
+                elif choice == BarracksAction.DO_LAY_LIGHT:
+                    pa.unitAction.type = ACTION_TYPE_PRODUCE
+                    pa.unitAction.parameter = self.random.choice(valid_directions)
+
+                    pa.unitAction.unitType = UNIT_TYPE_NAME_LIGHT
+
+                elif choice == BarracksAction.DO_LAY_HEAVY:
+                    pa.unitAction.type = ACTION_TYPE_PRODUCE
+                    pa.unitAction.parameter = self.random.choice(valid_directions)
+
+                    pa.unitAction.unitType = UNIT_TYPE_NAME_HEAVY
+
+                elif choice == BarracksAction.DO_LAY_RANGED:
+                    pa.unitAction.type = ACTION_TYPE_PRODUCE
+                    pa.unitAction.parameter = self.random.choice(valid_directions)
+
+                    pa.unitAction.unitType = UNIT_TYPE_NAME_RANGED
+
+            elif unit.type == UNIT_TYPE_NAME_WORKER:
+                if choice == WorkerActon.DO_NONE:
+                    pa.unitAction.type = ACTION_TYPE_NONE
+
+                elif choice == WorkerActon.DO_UP_PROBE:
+                    valid_type = [va.type for va in valid_actions]
+
+
+
+
+
+
+
+        return pas
+
+
+
     def step(self, action: List[Any]):
         """
         :param action: '{"unitID": "", "unitAction":{"type":"", "parameter": -1, "x":-1,"y":-1, "unitType":""}}'
@@ -114,18 +188,18 @@ class MicroRts(gym.Env):
 
     @staticmethod
     def sample(unit_valid_actions: List[UnitValidAction]) -> List[PlayerAction]:
-        pa = []
+        pas = []
         import random
         for uas in unit_valid_actions:
             x = random.choice(uas.unitActions)
-            pa.append(
+            pas.append(
                 asdict(PlayerAction(
                     unitID=uas.unit.ID,
                     unitAction=x
                 ))
             )
-        print(json.dumps(pa))
-        return pa
+        print(json.dumps(pas))
+        return pas
 
     @staticmethod
     def parse_game_state(gs: GameState, player):
@@ -187,3 +261,4 @@ class MicroRts(gym.Env):
 
     def close(self):
         self.conn.close()
+
