@@ -10,8 +10,8 @@ from .space import DictSpace
 import numpy as np
 from rts_wrapper.datatypes import *
 
-
 action_collection = [BaseAction, BarracksAction, WorkerActon, LightAction, HeavyAction]
+
 
 class MicroRts(gym.Env):
     config = None
@@ -97,7 +97,7 @@ class MicroRts(gym.Env):
         }
         return observation, reward, done, info
 
-    def network_simulate(self, unit_valid_actions: List[UnitValidAction]) -> List(int, Any):
+    def network_simulate(self, unit_valid_actions: List[UnitValidAction]):
         """
         :param unit_valid_actions:
         :return: choice for every unit, adding UVA to check validation later
@@ -110,40 +110,65 @@ class MicroRts(gym.Env):
             print(choice)
         print(self.network_action_translator(unit_validaction_choices))
 
-    def network_action_translator(self, unit_validaction_choices: List[UnitValidAction, Any]) -> List[PlayerAction]:
+    def network_action_translator(self, unit_validaction_choices) -> List[PlayerAction]:
         pas = []
         for uva, choice in unit_validaction_choices:
             unit = uva.unit
             valid_actions = uva.unitActions
 
-            valid_directions = [va.parameter for va in valid_actions]
+            # valid_probe_directions = [va.parameter for va in valid_actions if
+            #                           va.type != ACTION_TYPE_PRODUCE and va.parameter in (
+            #                               ACTION_PARAMETER_DIRECTION_UP,
+            #                               ACTION_PARAMETER_DIRECTION_RIGHT,
+            #                               ACTION_PARAMETER_DIRECTION_DOWN,
+            #                               ACTION_PARAMETER_DIRECTION_LEFT
+            #                           )
+            #                           ]
+            # valid_produce_directions = [va.parameter for va in valid_actions if ]
+
+            def get_valid_probe_action(direction) -> UnitAction:
+                ua = [action for action in valid_actions if
+                      action.parameter == direction.value and action.type != ACTION_TYPE_PRODUCE]
+
+                assert len(ua) == 1
+                return ua[0] if ua else ua
+
+            def get_valid_produce_directions(unit_type) -> List:
+                return [action.parameter for action in valid_actions if action.unitType == unit_type]
+
             pa = PlayerAction(unitID=unit.ID)
             if unit.type == UNIT_TYPE_NAME_BASE:
                 if choice == BaseAction.DO_NONE:
                     pa.unitAction.type = ACTION_TYPE_NONE
 
-                elif choice == BaseAction.DO_PRODUCE:
-                    pa.unitAction.type = ACTION_TYPE_PRODUCE
-                    pa.unitAction.parameter = self.random.choice(valid_directions)
+                elif choice == BaseAction.DO_LAY_WORKER:
+                    directions = get_valid_produce_directions(UNIT_TYPE_NAME_WORKER)
+                    if not directions:
+                        print("Invalid network action, do nothing")
+                        pass
+                    else:
+                        pa.unitAction.type = ACTION_TYPE_PRODUCE
+                        pa.unitAction.parameter = self.random.choice(directions)
+
             elif unit.type == UNIT_TYPE_NAME_BARRACKS:
                 if choice == BarracksAction.DO_NONE:
                     pa.unitAction.type = ACTION_TYPE_NONE
 
                 elif choice == BarracksAction.DO_LAY_LIGHT:
                     pa.unitAction.type = ACTION_TYPE_PRODUCE
-                    pa.unitAction.parameter = self.random.choice(valid_directions)
+                    pa.unitAction.parameter = self.random.choice(get_valid_produce_directions(UNIT_TYPE_NAME_LIGHT))
 
                     pa.unitAction.unitType = UNIT_TYPE_NAME_LIGHT
 
                 elif choice == BarracksAction.DO_LAY_HEAVY:
                     pa.unitAction.type = ACTION_TYPE_PRODUCE
-                    pa.unitAction.parameter = self.random.choice(valid_directions)
+                    pa.unitAction.parameter = self.random.choice(get_valid_produce_directions(UNIT_TYPE_NAME_HEAVY))
 
                     pa.unitAction.unitType = UNIT_TYPE_NAME_HEAVY
 
                 elif choice == BarracksAction.DO_LAY_RANGED:
                     pa.unitAction.type = ACTION_TYPE_PRODUCE
-                    pa.unitAction.parameter = self.random.choice(valid_directions)
+                    pa.unitAction.parameter = self.random.choice(get_valid_produce_directions(UNIT_TYPE_NAME_RANGED))
 
                     pa.unitAction.unitType = UNIT_TYPE_NAME_RANGED
 
@@ -152,17 +177,60 @@ class MicroRts(gym.Env):
                     pa.unitAction.type = ACTION_TYPE_NONE
 
                 elif choice == WorkerActon.DO_UP_PROBE:
-                    valid_type = [va.type for va in valid_actions]
+                    pa.unitAction = get_valid_probe_action(WorkerActon.DO_UP_PROBE)
 
+                elif choice == WorkerActon.DO_RIGHT_PROBE:
+                    pa.unitAction = get_valid_probe_action(WorkerActon.DO_RIGHT_PROBE)
 
+                elif choice == WorkerActon.DO_DOWN_PROBE:
+                    pa.unitAction = get_valid_probe_action(WorkerActon.DO_DOWN_PROBE)
 
+                elif choice == WorkerActon.DO_LEFT_PROBE:
+                    pa.unitAction = get_valid_probe_action(WorkerActon.DO_LEFT_PROBE)
 
+                elif choice == WorkerActon.DO_LAY_BASE:
+                    pa.unitAction = self.random.choice(get_valid_produce_directions(UNIT_TYPE_NAME_BASE))
 
+                elif choice == WorkerActon.DO_LAY_BARRACKS:
+                    pa.unitAction = self.random.choice(get_valid_produce_directions(UNIT_TYPE_NAME_BARRACKS))
 
+            elif unit.type == UNIT_TYPE_NAME_LIGHT:
+                if choice == LightAction.DO_NONE:
+                    pa.unitAction.type = ACTION_TYPE_NONE
 
+                elif choice == LightAction.DO_UP_PROBE:
+                    pa.unitAction = get_valid_probe_action(LightAction.DO_UP_PROBE)
+
+                elif choice == LightAction.DO_RIGHT_PROBE:
+                    pa.unitAction = get_valid_probe_action(LightAction.DO_RIGHT_PROBE)
+
+                elif choice == LightAction.DO_DOWN_PROBE:
+                    pa.unitAction = get_valid_probe_action(LightAction.DO_DOWN_PROBE)
+
+                elif choice == LightAction.DO_LEFT_PROBE:
+                    pa.unitAction = get_valid_probe_action(LightAction.DO_LEFT_PROBE)
+
+            elif unit.type == UNIT_TYPE_NAME_HEAVY:
+                if choice == HeavyAction.DO_NONE:
+                    pa.unitAction.type = ACTION_TYPE_NONE
+
+                elif choice == HeavyAction.DO_UP_PROBE:
+                    pa.unitAction = get_valid_probe_action(HeavyAction.DO_UP_PROBE)
+
+                elif choice == HeavyAction.DO_RIGHT_PROBE:
+                    pa.unitAction = get_valid_probe_action(HeavyAction.DO_RIGHT_PROBE)
+
+                elif choice == HeavyAction.DO_DOWN_PROBE:
+                    pa.unitAction = get_valid_probe_action(HeavyAction.DO_DOWN_PROBE)
+
+                elif choice == HeavyAction.DO_LEFT_PROBE:
+                    pa.unitAction = get_valid_probe_action(HeavyAction.DO_LEFT_PROBE)
+
+            elif unit.type == UNIT_TYPE_NAME_RANGED:
+                pass
+
+            pas.append(pa)
         return pas
-
-
 
     def step(self, action: List[Any]):
         """
@@ -261,4 +329,3 @@ class MicroRts(gym.Env):
 
     def close(self):
         self.conn.close()
-
