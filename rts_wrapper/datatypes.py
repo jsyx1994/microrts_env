@@ -14,6 +14,15 @@ ACTION_PARAMETER_DIRECTION_UP = 0
 ACTION_PARAMETER_DIRECTION_RIGHT = 1
 ACTION_PARAMETER_DIRECTION_DOWN = 2
 ACTION_PARAMETER_DIRECTION_LEFT = 3
+ACTION_PARAMETER_VALID_DIRECTION_NUMS = 4
+
+UNIT_TYPE_NAME_BASE = 'Base'
+UNIT_TYPE_NAME_BARRACKS = 'Barracks'
+UNIT_TYPE_NAME_WORKER = 'Worker'
+UNIT_TYPE_NAME_LIGHT = 'Light'
+UNIT_TYPE_NAME_HEAVY = 'Heavy'
+UNIT_TYPE_NAME_RANGED = 'Ranged'
+
 
 # @dataclass
 # class LearningSignal:
@@ -24,13 +33,24 @@ ACTION_PARAMETER_DIRECTION_LEFT = 3
 
 
 class BaseAction(Enum):
-    DO_NONE = 0
-    DO_PRODUCE = 1
+    __type_name__ = UNIT_TYPE_NAME_BASE
 
-    ACTION_NUMBER = 2
+    DO_NONE = 0
+    DO_LAY_WORKER = 1
+
+
+class BarracksAction(Enum):
+    __type_name__ = UNIT_TYPE_NAME_BARRACKS
+
+    DO_NONE = 0
+    DO_LAY_LIGHT = 1
+    DO_LAY_HEAVY = 2
+    DO_LAY_RANGED = 3
 
 
 class WorkerActon(Enum):
+    __type_name__ = UNIT_TYPE_NAME_WORKER
+
     DO_NONE = -1
 
     # need to convert to valid actions using unit_valid_action according to the specific condition.
@@ -45,7 +65,8 @@ class WorkerActon(Enum):
     DO_LAY_BARRACKS = 5     # type4 unitType:barracks
 
 
-class MeleeAction(Enum):
+class LightAction(Enum):
+    __type_name__ = UNIT_TYPE_NAME_LIGHT
     DO_NONE = -1
 
     DO_UP_PROBE = 0
@@ -54,7 +75,19 @@ class MeleeAction(Enum):
     DO_LEFT_PROBE = 3
 
 
-class ArcherAction(Enum):
+class HeavyAction(Enum):
+    __type_name__ = UNIT_TYPE_NAME_HEAVY
+    DO_NONE = -1
+
+    DO_UP_PROBE = 0
+    DO_RIGHT_PROBE = 1
+    DO_DOWN_PROBE = 2
+    DO_LEFT_PROBE = 3
+
+
+class RangedAction(Enum):
+    __type_name__ = UNIT_TYPE_NAME_HEAVY
+
     DO_NONE = -1
 
     DO_UP_PROBE = 0
@@ -64,9 +97,6 @@ class ArcherAction(Enum):
 
     DO_ATTACK_NEAREST = 4   # need java coding
     DO_ATTACK_WEAKEST = 5
-
-
-
 
 
 @dataclass
@@ -176,9 +206,8 @@ class GsWrapper:
 @dataclass
 class PlayerAction:
     unitID: int
-    unitAction: UnitAction
+    unitAction: Optional[UnitAction] = UnitAction()
 
 
 if __name__ == '__main__':
-    for name, member in ArcherAction.__members__.items():
-        print(name, member)
+    pass
