@@ -3,26 +3,30 @@ import os
 from gym import Space, spaces
 from subprocess import Popen, PIPE
 import socket
-from rts_wrapper.utils.socket_utils import get_available_port
+from rts_wrapper.utils.utils import get_available_port
 import json
 from dacite import from_dict
 from .space import DictSpace
 import numpy as np
 from rts_wrapper.datatypes import *
+import multiprocessing
+from threading import Thread
 
-action_collection = [BaseAction, BarracksAction, WorkerActon, LightAction, HeavyAction]
+action_collection = [BaseAction, BarracksAction, WorkerActon, LightAction, HeavyAction, RangedAction]
 
 
 class MicroRts(gym.Env):
     config = None
     port = None
     conn = None
-    server_socket = None
+    game_time = None
+    DEBUG = 0
 
-    def __init__(self, config=''):
+    def __init__(self, config: Config):
         np.random.seed()
         self.random = np.random
         self.unit_action_map = {}
+        self.port = get_available_port()
         for action in action_collection:
             self.unit_action_map[action.__type_name__] = action
 
@@ -38,9 +42,11 @@ class MicroRts(gym.Env):
 
         self.config = config
         if config:
+            Thread(target=self.init_client).start()
+
             self.init_server()
+
             # comments the next line then in developer mode
-            # self.init_client()
             print(config)
             print(MicroRts.reward_range)
             self.establish_connection()
@@ -56,9 +62,14 @@ class MicroRts(gym.Env):
                          'microrts-master/out/artifacts/microrts_master_jar/microrts-master.jar'),
             "--port", str(self.port),
             "--map", os.path.join(os.path.expanduser(self.config.microrts_path), self.config.map_path),
-            "more",
-            "options"
+            "--ai1_type",
+            "--ai2_type",
+            "--maxCycles", self.config.max_cycles,
+            "--maxEpisodes",
+            # "more",
+            # "options"
         ]
+        print(' '.join(setup_commands))
         java_client = Popen(
             setup_commands,
             stdin=PIPE,
@@ -68,14 +79,13 @@ class MicroRts(gym.Env):
         print(stdout.decode("utf-8"))
 
     def init_server(self):
-        self.port = get_available_port()
-        self.server_socket = socket.socket()
-        self.server_socket.bind((self.config.client_ip, 9898))
+        server_socket = socket.socket()
+        server_socket.bind((self.config.client_ip, self.port))
+        server_socket.listen(5)
+        print("Wait for Java client connection...")
+        self.conn, address_info = server_socket.accept()
 
     def establish_connection(self):
-        self.server_socket.listen(5)
-        print("Wait for Java client connection...")
-        self.conn, address_info = self.server_socket.accept()
         print("Server: Send welcome msg to client...")
         print(self._send_msg("Welcome meg sent!"))
 
@@ -92,6 +102,7 @@ class MicroRts(gym.Env):
         observation = self.parse_game_state(gs_wrapper.gs, curr_player)
         reward = gs_wrapper.reward
         done = gs_wrapper.done
+        self.game_time = gs_wrapper.gs.time
         info = {
             "unit_valid_actions": gs_wrapper.validActions
         }
@@ -103,74 +114,85 @@ class MicroRts(gym.Env):
         :return: choice for every unit, adding UVA to check validation later
         """
         unit_validaction_choices = []
-        for uva in unit_valid_actions:
-            choice = self.random.choice(list(self.unit_action_map[uva.unit.type]))
-            # (choice) BaseAction.DO_NONE.name, BaseAction.DO_NONE.value
-            unit_validaction_choices.append((uva, choice))
-            print(choice)
-        print(self.network_action_translator(unit_validaction_choices))
+        if self.game_time % (self.config.frame_skip + 1) == 0:
+            for uva in unit_valid_actions:
+                choice = self.random.choice(list(self.unit_action_map[uva.unit.type]))
+                # (choice) BaseAction.DO_NONE.name, BaseAction.DO_NONE.value
+                unit_validaction_choices.append((uva, choice))
+                if self.DEBUG:
+                    print(choice)
+            return self.network_action_translator(unit_validaction_choices)
+        else:
+            print(self.game_time)
+            print("skip")
+            return unit_validaction_choices
 
     def network_action_translator(self, unit_validaction_choices) -> List[PlayerAction]:
         pas = []
         for uva, choice in unit_validaction_choices:
             unit = uva.unit
             valid_actions = uva.unitActions
-
-            # valid_probe_directions = [va.parameter for va in valid_actions if
-            #                           va.type != ACTION_TYPE_PRODUCE and va.parameter in (
-            #                               ACTION_PARAMETER_DIRECTION_UP,
-            #                               ACTION_PARAMETER_DIRECTION_RIGHT,
-            #                               ACTION_PARAMETER_DIRECTION_DOWN,
-            #                               ACTION_PARAMETER_DIRECTION_LEFT
-            #                           )
-            #                           ]
-            # valid_produce_directions = [va.parameter for va in valid_actions if ]
+            pa = PlayerAction(unitID=unit.ID)
 
             def get_valid_probe_action(direction) -> UnitAction:
+                """
+                probe doesn't include produce action
+                :param direction:
+                :return:
+                """
+                # probe actions includes: move(parameter), attack(x, y),
                 ua = [action for action in valid_actions if
-                      action.parameter == direction.value and action.type != ACTION_TYPE_PRODUCE]
+                      (action.parameter == direction.value and action.type != ACTION_TYPE_PRODUCE) or
+                      (action.x == unit.x + DIRECTION_OFFSET_X[direction.value] and
+                       action.y == unit.y + DIRECTION_OFFSET_Y[direction.value])
+                      ]
 
-                assert len(ua) == 1
-                return ua[0] if ua else ua
+                assert len(ua) <= 1
+                return ua[0] if ua else UnitAction()
 
             def get_valid_produce_directions(unit_type) -> List:
+                """
+                if the object to be produce have direction parameter in valid_actions
+                :param unit_type:
+                :return:
+                """
                 return [action.parameter for action in valid_actions if action.unitType == unit_type]
 
-            pa = PlayerAction(unitID=unit.ID)
+            def issue_produce(unit_type_name):
+                """
+                checking if the unit to produce is valid
+                :param unit_type_name: the unit name of the object to be produced
+                :return:
+                """
+                directions = get_valid_produce_directions(unit_type_name)
+                if not directions:
+                    if self.DEBUG:
+                        print("Invalid network action, do nothing")
+                    pa.unitAction.type = ACTION_TYPE_NONE
+                else:
+                    pa.unitAction.type = ACTION_TYPE_PRODUCE
+                    pa.unitAction.unitType = unit_type_name
+                    pa.unitAction.parameter = int(self.random.choice(directions))
+
             if unit.type == UNIT_TYPE_NAME_BASE:
                 if choice == BaseAction.DO_NONE:
                     pa.unitAction.type = ACTION_TYPE_NONE
 
                 elif choice == BaseAction.DO_LAY_WORKER:
-                    directions = get_valid_produce_directions(UNIT_TYPE_NAME_WORKER)
-                    if not directions:
-                        print("Invalid network action, do nothing")
-                        pass
-                    else:
-                        pa.unitAction.type = ACTION_TYPE_PRODUCE
-                        pa.unitAction.parameter = self.random.choice(directions)
+                    issue_produce(UNIT_TYPE_NAME_WORKER)
 
             elif unit.type == UNIT_TYPE_NAME_BARRACKS:
                 if choice == BarracksAction.DO_NONE:
                     pa.unitAction.type = ACTION_TYPE_NONE
 
                 elif choice == BarracksAction.DO_LAY_LIGHT:
-                    pa.unitAction.type = ACTION_TYPE_PRODUCE
-                    pa.unitAction.parameter = self.random.choice(get_valid_produce_directions(UNIT_TYPE_NAME_LIGHT))
-
-                    pa.unitAction.unitType = UNIT_TYPE_NAME_LIGHT
+                    issue_produce(UNIT_TYPE_NAME_LIGHT)
 
                 elif choice == BarracksAction.DO_LAY_HEAVY:
-                    pa.unitAction.type = ACTION_TYPE_PRODUCE
-                    pa.unitAction.parameter = self.random.choice(get_valid_produce_directions(UNIT_TYPE_NAME_HEAVY))
-
-                    pa.unitAction.unitType = UNIT_TYPE_NAME_HEAVY
+                    issue_produce(UNIT_TYPE_NAME_HEAVY)
 
                 elif choice == BarracksAction.DO_LAY_RANGED:
-                    pa.unitAction.type = ACTION_TYPE_PRODUCE
-                    pa.unitAction.parameter = self.random.choice(get_valid_produce_directions(UNIT_TYPE_NAME_RANGED))
-
-                    pa.unitAction.unitType = UNIT_TYPE_NAME_RANGED
+                    issue_produce(UNIT_TYPE_NAME_RANGED)
 
             elif unit.type == UNIT_TYPE_NAME_WORKER:
                 if choice == WorkerActon.DO_NONE:
@@ -189,10 +211,10 @@ class MicroRts(gym.Env):
                     pa.unitAction = get_valid_probe_action(WorkerActon.DO_LEFT_PROBE)
 
                 elif choice == WorkerActon.DO_LAY_BASE:
-                    pa.unitAction = self.random.choice(get_valid_produce_directions(UNIT_TYPE_NAME_BASE))
+                    issue_produce(UNIT_TYPE_NAME_BASE)
 
                 elif choice == WorkerActon.DO_LAY_BARRACKS:
-                    pa.unitAction = self.random.choice(get_valid_produce_directions(UNIT_TYPE_NAME_BARRACKS))
+                    issue_produce(UNIT_TYPE_NAME_BARRACKS)
 
             elif unit.type == UNIT_TYPE_NAME_LIGHT:
                 if choice == LightAction.DO_NONE:
@@ -229,10 +251,12 @@ class MicroRts(gym.Env):
             elif unit.type == UNIT_TYPE_NAME_RANGED:
                 pass
 
+            # if pa.unitAction.type == ACTION_TYPE_ATTACK_LOCATION:
+            #     input()
             pas.append(pa)
         return pas
 
-    def step(self, action: List[Any]):
+    def step(self, action: List[PlayerAction]):
         """
         :param action: '{"unitID": "", "unitAction":{"type":"", "parameter": -1, "x":-1,"y":-1, "unitType":""}}'
         :return: observation, reward, done, info[List[Unit]]
@@ -241,8 +265,8 @@ class MicroRts(gym.Env):
         }
         """
         # print(self._send_msg('[]'))
-
-        raw = self._send_msg(json.dumps(action))
+        pa = self.pa_to_jsonable(action)
+        raw = self._send_msg(pa)
         return self.signal_wrapper(raw)
 
     def reset(self):
@@ -254,19 +278,36 @@ class MicroRts(gym.Env):
     def render(self, mode='human'):
         pass
 
+    def get_winner(self):
+        """
+        this function must come after the done is true
+        -1: tie
+        0: player 0
+        1: player 1
+        :return:
+        """
+        return self.conn.recv(1024).decode('utf-8')
+
     @staticmethod
-    def sample(unit_valid_actions: List[UnitValidAction]) -> List[PlayerAction]:
+    def pa_to_jsonable(pas: List[PlayerAction]) -> str:
+        ans = []
+        for pa in pas:
+            ans.append(asdict(pa))
+        json.dumps(ans)
+        return json.dumps(ans)
+
+    def sample(self, unit_valid_actions: List[UnitValidAction]) -> List[PlayerAction]:
         pas = []
         import random
         for uas in unit_valid_actions:
             x = random.choice(uas.unitActions)
             pas.append(
-                asdict(PlayerAction(
+                PlayerAction(
                     unitID=uas.unit.ID,
                     unitAction=x
-                ))
+                )
             )
-        print(json.dumps(pas))
+        # print(json.dumps(pas))
         return pas
 
     @staticmethod

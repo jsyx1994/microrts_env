@@ -86,8 +86,8 @@ public class PlayerActionGenerator {
 		// System.out.println("---");
 
 		if (choices.size() == 0) {
-			System.err.println("Problematic game state:");
-			System.err.println(a_gs);
+//			System.err.println("Problematic game state:");
+//			System.err.println(a_gs);
 			throw new Exception(
 				"Move generator for player " + pID + " created with no units that can execute actions! (status: "
 						+ a_gs.canExecuteAnyAction(0) + ", " + a_gs.canExecuteAnyAction(1) + ")"

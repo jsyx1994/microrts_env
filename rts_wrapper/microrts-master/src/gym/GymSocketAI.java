@@ -23,6 +23,7 @@ import rts.units.UnitTypeTable;
 import util.Pair;
 import util.XMLWriter;
 import ai.evaluation.*;
+import weka.classifiers.evaluation.output.prediction.Null;
 
 /**
  * @author santi
@@ -51,7 +52,6 @@ public class GymSocketAI extends AIWithComputationBudget {
             e.printStackTrace();
         }
     }
-
 
     public GymSocketAI(int mt, int mi, String a_sa, int a_port, int a_language, UnitTypeTable a_utt) {
         super(mt, mi);
@@ -106,7 +106,16 @@ public class GymSocketAI extends AIWithComputationBudget {
 
     public void connectToServer() throws Exception {
         // Make connection and initialize streams
-        socket = new Socket(serverAddress, serverPort);
+        while(true){
+            try {
+                socket = new Socket(serverAddress, serverPort);
+                break;
+            }
+            catch (Exception e){
+                System.out.println("client request for connecting to server...");
+            }
+        }
+
         in_pipe = new BufferedReader(new InputStreamReader(socket.getInputStream()));
         out_pipe = new PrintWriter(socket.getOutputStream(), true);
 
@@ -117,11 +126,13 @@ public class GymSocketAI extends AIWithComputationBudget {
         if (DEBUG >= 1) System.out.println("GymSocketAI: welcome message received");
 
         acknowledge();
-
 //        reset();
     }
-
-
+    public void  close() throws IOException {
+        out_pipe.close();
+        in_pipe.close();
+        socket.close();
+    }
     public void reset(GameState gs, int player) {
         // according to gym, reset return will initial game state
         try {
@@ -177,7 +188,7 @@ public class GymSocketAI extends AIWithComputationBudget {
 
 //            PlayerActionGenerator playerActionGenerator = new PlayerActionGenerator(gs, player);
             out_pipe.write("{");
-
+            // add your needs here!
             out_pipe.write("\"reward\":" + reward + ",");
             out_pipe.write("\"done\":" + done + ",");
             out_pipe.write("\"validActions\":");
@@ -284,9 +295,13 @@ public class GymSocketAI extends AIWithComputationBudget {
 //            gs.toJSON(out_pipe);
 //            out_pipe.append("\n");
 //            out_pipe.flush();
-
             // parse the action:
             String actionString = in_pipe.readLine();
+//            System.out.println(actionString);
+//            if (actionString.equals("done")){
+//                acknowledge();
+//                return null;
+//            }
             // System.out.println("action received from server: " + actionString);
             PlayerAction pa = PlayerAction.fromJSON(actionString, gs, utt);
             pa.fillWithNones(gs, player, 10);
@@ -325,7 +340,10 @@ public class GymSocketAI extends AIWithComputationBudget {
         }
     }
 
-
+    public void send_winner(GameState gs){
+        out_pipe.write("" + gs.winner());
+        out_pipe.flush();
+    }
     @Override
     public void preGameAnalysis(GameState gs, long milliseconds, String readWriteFolder) throws Exception {
         // send the game state:
@@ -370,6 +388,7 @@ public class GymSocketAI extends AIWithComputationBudget {
     public AI clone() {
         return new GymSocketAI(TIME_BUDGET, ITERATIONS_BUDGET, serverAddress, serverPort, communication_language, utt);
     }
+
 
 
     @Override

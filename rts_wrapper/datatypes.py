@@ -23,6 +23,8 @@ UNIT_TYPE_NAME_LIGHT = 'Light'
 UNIT_TYPE_NAME_HEAVY = 'Heavy'
 UNIT_TYPE_NAME_RANGED = 'Ranged'
 
+DIRECTION_OFFSET_X = [0, 1, 0, -1]
+DIRECTION_OFFSET_Y = [-1, 0, 1, 0]
 
 # @dataclass
 # class LearningSignal:
@@ -86,7 +88,7 @@ class HeavyAction(Enum):
 
 
 class RangedAction(Enum):
-    __type_name__ = UNIT_TYPE_NAME_HEAVY
+    __type_name__ = UNIT_TYPE_NAME_RANGED
 
     DO_NONE = -1
 
@@ -168,13 +170,13 @@ class Config:
     ai2_type: str
     map_path: str
     max_cycles: Optional[int] = 5000
+    max_episodes = Optional[int] = 10000
     period: Optional[int] = 5
     render: Optional[bool] = True
     # auto_port: Optional[bool] = False
     client_port: Optional[int] = 0
     microrts_path: Optional[str] = ""
     microrts_repo_path: Optional[str] = ""
-    maximum_t: Optional[int] = 2000
     client_ip: Optional[str] = "127.0.0.1"
     height: Optional[int] = 0
     width: Optional[int] = 0

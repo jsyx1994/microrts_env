@@ -2,10 +2,19 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="3b89092c-195d-42ef-b344-e672f2348028" name="Default Changelist" comment="">
+      <change afterPath="$PROJECT_DIR$/../../maps/4x4/base4x4.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../../maps/4x4/baseTwoWorkers4x4.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../../maps/4x4/baseTwoWorkersMaxResources4x4.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../../maps/6x6/baseTwoWorkersMaxResources6x6.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/out/artifacts/microrts_master_jar/microrts-master.jar" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../datatypes.py" beforeDir="false" afterPath="$PROJECT_DIR$/../datatypes.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../envs/rts_env.py" beforeDir="false" afterPath="$PROJECT_DIR$/../envs/rts_env.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../envs/space.py" beforeDir="false" afterPath="$PROJECT_DIR$/../envs/space.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/gym/GymInterface.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/gym/GymInterface.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/gym/GymSocketAI.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/gym/GymSocketAI.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/rts/GameState.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/rts/GameState.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/rts/PlayerActionGenerator.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/rts/PlayerActionGenerator.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../utils/socket_utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/../utils/utils.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../../test.py" beforeDir="false" afterPath="$PROJECT_DIR$/../../test.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
@@ -37,7 +46,7 @@
     <property name="Repository.Attach.Sources" value="false" />
     <property name="SHARE_PROJECT_CONFIGURATION_FILES" value="true" />
     <property name="last_opened_file_path" value="$PROJECT_DIR$" />
-    <property name="project.structure.last.edited" value="Project" />
+    <property name="project.structure.last.edited" value="Artifacts" />
     <property name="project.structure.proportion" value="0.15" />
     <property name="project.structure.side.proportion" value="0.2" />
     <property name="settings.editor.selected.configurable" value="preferences.lookFeel" />
@@ -133,8 +142,13 @@
       <breakpoints>
         <line-breakpoint enabled="true" type="java-line">
           <url>file://$PROJECT_DIR$/src/gym/GymInterface.java</url>
-          <line>50</line>
-          <option name="timeStamp" value="5" />
+          <line>108</line>
+          <option name="timeStamp" value="6" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="java-line">
+          <url>file://$PROJECT_DIR$/src/rts/GameState.java</url>
+          <line>717</line>
+          <option name="timeStamp" value="8" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>
