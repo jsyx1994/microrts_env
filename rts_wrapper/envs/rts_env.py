@@ -64,8 +64,8 @@ class MicroRts(gym.Env):
             "--map", os.path.join(os.path.expanduser(self.config.microrts_path), self.config.map_path),
             "--ai1_type",
             "--ai2_type",
-            "--maxCycles", self.config.max_cycles,
-            "--maxEpisodes",
+            "--maxCycles", str(self.config.max_cycles),
+            "--maxEpisodes", str(self.config.max_episodes),
             # "more",
             # "options"
         ]

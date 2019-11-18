@@ -170,7 +170,7 @@ class Config:
     ai2_type: str
     map_path: str
     max_cycles: Optional[int] = 5000
-    max_episodes = Optional[int] = 10000
+    max_episodes: Optional[int] = 10000
     period: Optional[int] = 5
     render: Optional[bool] = True
     # auto_port: Optional[bool] = False
