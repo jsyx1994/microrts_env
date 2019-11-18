@@ -1,6 +1,6 @@
 from dataclasses import dataclass, asdict
 from typing import List, Any, Dict, Optional
-from enum import Enum, auto
+from enum import Enum
 
 ACTION_TYPE_NONE = 0
 ACTION_TYPE_MOVE = 1
@@ -25,6 +25,34 @@ UNIT_TYPE_NAME_RANGED = 'Ranged'
 
 DIRECTION_OFFSET_X = [0, 1, 0, -1]
 DIRECTION_OFFSET_Y = [-1, 0, 1, 0]
+
+UTT_ORI = '{"moveConflictResolutionStrategy":3,"unitTypes":[{"ID":0, "name":"Resource", "cost":1, "hp":1, ' \
+          '"minDamage":1, "maxDamage":1, "attackRange":1, "produceTime":10, "moveTime":10, "attackTime":10, ' \
+          '"harvestTime":10, "returnTime":10, "harvestAmount":1, "sightRadius":0, "isResource":true, ' \
+          '"isStockpile":false, "canHarvest":false, "canMove":false, "canAttack":false, "produces":[], "producedBy":[' \
+          ']}, {"ID":1, "name":"Base", "cost":10, "hp":10, "minDamage":1, "maxDamage":1, "attackRange":1, ' \
+          '"produceTime":250, "moveTime":10, "attackTime":10, "harvestTime":10, "returnTime":10, "harvestAmount":1, ' \
+          '"sightRadius":5, "isResource":false, "isStockpile":true, "canHarvest":false, "canMove":false, ' \
+          '"canAttack":false, "produces":["Worker"], "producedBy":["Worker"]}, {"ID":2, "name":"Barracks", "cost":5, ' \
+          '"hp":4, "minDamage":1, "maxDamage":1, "attackRange":1, "produceTime":200, "moveTime":10, "attackTime":10, ' \
+          '"harvestTime":10, "returnTime":10, "harvestAmount":1, "sightRadius":3, "isResource":false, ' \
+          '"isStockpile":false, "canHarvest":false, "canMove":false, "canAttack":false, "produces":["Light", "Heavy", ' \
+          '"Ranged"], "producedBy":["Worker"]}, {"ID":3, "name":"Worker", "cost":1, "hp":1, "minDamage":1, ' \
+          '"maxDamage":1, "attackRange":1, "produceTime":50, "moveTime":10, "attackTime":5, "harvestTime":20, ' \
+          '"returnTime":10, "harvestAmount":1, "sightRadius":3, "isResource":false, "isStockpile":false, ' \
+          '"canHarvest":true, "canMove":true, "canAttack":true, "produces":["Base", "Barracks"], "producedBy":[' \
+          '"Base"]}, {"ID":4, "name":"Light", "cost":2, "hp":4, "minDamage":2, "maxDamage":2, "attackRange":1, ' \
+          '"produceTime":80, "moveTime":8, "attackTime":5, "harvestTime":10, "returnTime":10, "harvestAmount":1, ' \
+          '"sightRadius":2, "isResource":false, "isStockpile":false, "canHarvest":false, "canMove":true, ' \
+          '"canAttack":true, "produces":[], "producedBy":["Barracks"]}, {"ID":5, "name":"Heavy", "cost":2, "hp":4, ' \
+          '"minDamage":4, "maxDamage":4, "attackRange":1, "produceTime":120, "moveTime":12, "attackTime":5, ' \
+          '"harvestTime":10, "returnTime":10, "harvestAmount":1, "sightRadius":2, "isResource":false, ' \
+          '"isStockpile":false, "canHarvest":false, "canMove":true, "canAttack":true, "produces":[], "producedBy":[' \
+          '"Barracks"]}, {"ID":6, "name":"Ranged", "cost":2, "hp":1, "minDamage":1, "maxDamage":1, "attackRange":3, ' \
+          '"produceTime":100, "moveTime":10, "attackTime":5, "harvestTime":10, "returnTime":10, "harvestAmount":1, ' \
+          '"sightRadius":3, "isResource":false, "isStockpile":false, "canHarvest":false, "canMove":true, ' \
+          '"canAttack":true, "produces":[], "producedBy":["Barracks"]}]} '
+
 
 # @dataclass
 # class LearningSignal:
@@ -63,8 +91,8 @@ class WorkerActon(Enum):
     DO_LEFT_PROBE = 3
 
     # produce: randomly pick directions
-    DO_LAY_BASE = 4         # type4 unitType:base
-    DO_LAY_BARRACKS = 5     # type4 unitType:barracks
+    DO_LAY_BASE = 4  # type4 unitType:base
+    DO_LAY_BARRACKS = 5  # type4 unitType:barracks
 
 
 class LightAction(Enum):
@@ -97,33 +125,39 @@ class RangedAction(Enum):
     DO_DOWN_PROBE = 2
     DO_LEFT_PROBE = 3
 
-    DO_ATTACK_NEAREST = 4   # need java coding
+    DO_ATTACK_NEAREST = 4  # need java coding
     DO_ATTACK_WEAKEST = 5
 
 
 @dataclass
 class UnitType:
-    id: int
+    ID: int
     name: str
     cost: int
     hp: int
-    min_damage: int
-    max_damage: int
-    attack_range: int
-    produce_time: int
-    move_time: int
-    attack_time: int
-    harvest_time: int
-    return_time: int
-    harvest_amount: int
-    sight_radius: int
-    is_resource: bool
-    is_stockpile: bool
-    can_harvest: bool
-    can_move: bool
-    can_attack: bool
+    minDamage: int
+    maxDamage: int
+    attackRange: int
+    produceTime: int
+    moveTime: int
+    attackTime: int
+    harvestTime: int
+    returnTime: int
+    harvestAmount: int
+    sightRadius: int
+    isResource: bool
+    isStockpile: bool
+    canHarvest: bool
+    canMove: bool
+    canAttack: bool
     produces: List[str]
-    produced_by: List[str]
+    producedBy: List[str]
+
+
+@dataclass
+class UnitTypeTable:
+    moveConflictResolutionStrategy: int
+    unitTypes: List[UnitType]
 
 
 @dataclass
@@ -164,6 +198,7 @@ class GameState:
     pgs: Pgs
     actions: List[Any]
 
+
 @dataclass
 class Config:
     ai1_type: str
@@ -184,6 +219,7 @@ class Config:
     evaluation_filename: Optional[str] = ""
     frame_skip: Optional[int] = 0
 
+
 @dataclass
 class UnitAction:
     type: Optional[int] = ACTION_TYPE_NONE
@@ -192,10 +228,12 @@ class UnitAction:
     x: Optional[int] = -1
     y: Optional[int] = -1
 
+
 @dataclass
 class UnitValidAction:
     unit: Unit
     unitActions: List[UnitAction]
+
 
 @dataclass
 class GsWrapper:
@@ -212,4 +250,7 @@ class PlayerAction:
 
 
 if __name__ == '__main__':
-    pass
+    from dacite import from_dict
+    import json
+    x = from_dict(data_class=UnitTypeTable, data=json.loads(UTT_ORI))
+    print(x)

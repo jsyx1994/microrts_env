@@ -15,9 +15,7 @@ import rts.PlayerAction;
 import rts.units.UnitTypeTable;
 import weka.core.pmml.jaxbbindings.True;
 
-import java.io.BufferedWriter;
-import java.io.OutputStreamWriter;
-import java.io.Writer;
+import java.io.*;
 
 /**
  * @author santi, Tom
@@ -53,6 +51,11 @@ public class GymInterface {
         //        AI ai1 = new GymSocketAI(100,0, "127.0.0.1", 9898, GymSocketAI.LANGUAGE_XML, utt);
 
         UnitTypeTable utt = new UnitTypeTable();
+
+        StringWriter stringWriter = new StringWriter();
+        utt.toJSON(stringWriter);
+        System.err.println(stringWriter.toString());
+
 
 //        PhysicalGameState pgs = MapGenerator.basesWorkers8x8Obstacle();
 
