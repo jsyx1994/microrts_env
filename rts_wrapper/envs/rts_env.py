@@ -65,7 +65,7 @@ class MicroRts(gym.Env):
             "--ai1_type",
             "--ai2_type",
             "--maxCycles", str(self.config.max_cycles),
-            "--maxEpisodes",
+            "--maxEpisodes", str(self.config.max_episodes),
             # "more",
             # "options"
         ]
