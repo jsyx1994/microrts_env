@@ -23,6 +23,9 @@ UNIT_TYPE_NAME_LIGHT = 'Light'
 UNIT_TYPE_NAME_HEAVY = 'Heavy'
 UNIT_TYPE_NAME_RANGED = 'Ranged'
 
+AGENT_COLLECTION = [UNIT_TYPE_NAME_BASE, UNIT_TYPE_NAME_BARRACKS, UNIT_TYPE_NAME_WORKER, UNIT_TYPE_NAME_LIGHT,
+                    UNIT_TYPE_NAME_HEAVY, UNIT_TYPE_NAME_RANGED]
+
 DIRECTION_OFFSET_X = [0, 1, 0, -1]
 DIRECTION_OFFSET_Y = [-1, 0, 1, 0]
 
@@ -210,7 +213,7 @@ class Config:
     render: Optional[bool] = True
     # auto_port: Optional[bool] = False
     client_port: Optional[int] = 0
-    microrts_path: Optional[str] = ""
+    microrts_path: Optional[str] = "~/microrts_env"
     microrts_repo_path: Optional[str] = ""
     client_ip: Optional[str] = "127.0.0.1"
     height: Optional[int] = 0
@@ -252,5 +255,6 @@ class PlayerAction:
 if __name__ == '__main__':
     from dacite import from_dict
     import json
+
     x = from_dict(data_class=UnitTypeTable, data=json.loads(UTT_ORI))
     print(x)

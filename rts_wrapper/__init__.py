@@ -22,14 +22,28 @@ register(
     id='Microrts-v0',
     entry_point='rts_wrapper.envs:MicroRts',
     kwargs={'config': Config(
-        ai1_type='myAI',
+        ai1_type='socketAI',
         ai2_type='passive',
         map_path='maps/16x16/basesWorkers16x16.xml',
         render=True,
         max_cycles=2000,
         max_episodes=2,
         # auto_port=True,
-        microrts_path='~/microrts_env',
+    )}
+)
+
+register(
+    id='CurriculumBaseWorker-v0',
+    entry_point='rts_wrapper.envs:MicroRts',
+    kwargs={'config': Config(
+        ai1_type='socketAI',
+        ai2_type='passive',
+        map_path='/home/toby/microrts_env/maps/6x6/baseTwoWorkersMaxResources6x6.xml',
+        height=6,
+        width=6,
+        render=True,
+        max_cycles=3000,
+        max_episodes=10000,
 
     )}
 )

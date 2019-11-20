@@ -13,6 +13,7 @@ import rts.PhysicalGameState;
 import rts.Player;
 import rts.PlayerAction;
 import rts.units.UnitTypeTable;
+import tests.MapGenerator;
 import weka.core.pmml.jaxbbindings.True;
 
 import java.io.*;
@@ -22,16 +23,21 @@ import java.io.*;
  */
 
 public class GymInterface {
-    private static long maxEpisodes = 100000;
+    private static long maxEpisodes;
     private static int timeBudget = 100;
-    private static long maxCycles = 20000;
     private static int period = 1;
-    private static long port = 9898;
-    private static String map = System.getProperty("user.home") + "/microrts_env/maps/16x16/basesWorkers16x16.xml";
-    private static int skipFrame = 10;
+
+    private static long maxCycles;
+    private static long port;
+    private static String map;
+    private static int skipFrame;
+    private static String ai1_type;
+    private static String ai2_type;
+
+
 //    private static Writer outWriter = new BufferedWriter(new OutputStreamWriter(System.out));
 
-    private static void parseArgs(String[] args){
+    private static void parseArgs(String[] args) {
         System.out.println("Client received info:");
 
         for (String arg : args) {
@@ -39,30 +45,25 @@ public class GymInterface {
         }
 
         CliArgs cliArgs = new CliArgs(args);
-        port = cliArgs.switchPresent("--port") ? Long.parseLong(cliArgs.switchValue("--port")) : port;
-        map = cliArgs.switchPresent("--map") ? cliArgs.switchValue("--map") : map;
-        maxEpisodes = cliArgs.switchPresent("--maxEpisodes") ? Long.parseLong(cliArgs.switchValue("--maxEpisodes")) : maxEpisodes;
-        maxCycles = cliArgs.switchPresent("--maxCycles") ? Long.parseLong(cliArgs.switchValue("--maxCycles")) : maxCycles;
+        port = Long.parseLong(cliArgs.switchValue("--port", "9898"));
+        map = cliArgs.switchValue("--map", System.getProperty("user.home") + "/microrts_env/maps/16x16/basesWorkers16x16.xml");
+        maxEpisodes = Long.parseLong(cliArgs.switchValue("--maxEpisodes", "20000"));
+        maxCycles = Long.parseLong(cliArgs.switchValue("--maxCycles", "5000"));
+        ai1_type = cliArgs.switchValue("--ai1_type","passive");
+        ai2_type = cliArgs.switchValue("--ai2_type","passive");
+
+//        port = cliArgs.switchPresent("--port") ? Long.parseLong(cliArgs.switchValue("--port")) : port;
+//        map = cliArgs.switchPresent("--map") ? cliArgs.switchValue("--map") : map;
+//        maxEpisodes = cliArgs.switchPresent("--maxEpisodes") ? Long.parseLong(cliArgs.switchValue("--maxEpisodes")) : maxEpisodes;
+//        maxCycles = cliArgs.switchPresent("--maxCycles") ? Long.parseLong(cliArgs.switchValue("--maxCycles")) : maxCycles;
+//        ai1_type = cliArgs.switchPresent("--ai1_type") ? cliArgs.switchValue("--ai1_type") : ai1_type;
+//        ai2_type = cliArgs.switchPresent("--ai2_type") ? cliArgs.switchValue("--ai2_type") : ai2_type;
 
     }
-    public static void main(String[] args) throws Exception {
-        parseArgs(args);
-        //        AI ai1 = new WorkerRush(utt, new BFSPathFinding());
-        //        AI ai1 = new GymSocketAI(100,0, "127.0.0.1", 9898, GymSocketAI.LANGUAGE_XML, utt);
 
-        UnitTypeTable utt = new UnitTypeTable();
-
-        StringWriter stringWriter = new StringWriter();
-        utt.toJSON(stringWriter);
-        System.err.println(stringWriter.toString());
-
-
-//        PhysicalGameState pgs = MapGenerator.basesWorkers8x8Obstacle();
-
-
-        //  AI ai2 = new WorkerRush(utt);
+    private static void socketVSbuiltIn(UnitTypeTable utt) throws Exception {
         GymSocketAI ai1 = new GymSocketAI(timeBudget, 0, "127.0.0.1", (int) port, GymSocketAI.LANGUAGE_JSON, utt);
-        AI ai2 = new RandomAI();
+        AI ai2 = new PassiveAI();
 
 
         for (int i = 0; i < maxEpisodes; i++) {
@@ -91,7 +92,7 @@ public class GymInterface {
                     // simulate:
                     gameover = gs.cycle();
                     done = gameover || gs.getTime() >= maxCycles;
-                    ai1.sendGameState(gs,0,false,done);
+                    ai1.sendGameState(gs, 0, false, done);
 
                     w.repaint();
                     nextTimeToUpdate += period;
@@ -108,6 +109,31 @@ public class GymInterface {
             ai1.send_winner(gs);
 //            ai1.close();
             w.dispose();
+        }
+    }
+
+    public static void main(String[] args) throws Exception {
+        parseArgs(args);
+        //        AI ai1 = new WorkerRush(utt, new BFSPathFinding());
+        //        AI ai1 = new GymSocketAI(100,0, "127.0.0.1", 9898, GymSocketAI.LANGUAGE_XML, utt);
+
+        UnitTypeTable utt = new UnitTypeTable();
+
+        StringWriter stringWriter = new StringWriter();
+        utt.toJSON(stringWriter);
+        System.err.println(stringWriter.toString());
+
+
+//        PhysicalGameState pgs = MapGenerator.basesWorkers8x8Obstacle();
+
+        //  AI ai2 = new WorkerRush(utt);
+
+        if (ai1_type.equals("socketAI") && !ai2_type.equals("socketAI")) {
+            socketVSbuiltIn(utt);
+        } else if (ai1_type.equals("socketAI") && ai2_type.equals("socketAI")) {
+
+        } else if (!ai1_type.equals("socketAI") && !ai2_type.equals("socketAI")) {
+
         }
 
 //        ai1.reset();

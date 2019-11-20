@@ -4,7 +4,8 @@ import os
 from rts_wrapper.datatypes import *
 
 
-env = gym.make("Microrts-v0")
+# env = gym.make("Microrts-v0")
+env = gym.make("CurriculumBaseWorker-v0")
 env.action_space.sample()
 
 # example
