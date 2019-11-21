@@ -51,6 +51,9 @@ class MicroRts(gym.Env):
         print(MicroRts.reward_range)
         self.establish_connection()
 
+    def get_encoded_utt_dict(self):
+        return self.encoded_utt_dict
+    
     def init_client(self):
         """
         before-interacting setting-ups

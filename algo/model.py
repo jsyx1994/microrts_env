@@ -2,6 +2,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from rts_wrapper.datatypes import AGENT_COLLECTION, UTT_DICT
+from algo.config import model_path
+import os
 
 
 class Flatten(nn.Module):
@@ -10,7 +12,7 @@ class Flatten(nn.Module):
 
 
 class NNBase(nn.Module):
-    def __init__(self):
+    def __init__(self, out_size):
         super(NNBase, self).__init__()
 
     def common_func1(self):
@@ -25,6 +27,7 @@ class CNNBase(nn.Module):
         super(CNNBase, self).__init__()
         # self.map_height = map_height
         # self.map_width = map_width
+        self.out_size = out_size
         self.conv_component = nn.Sequential(
             nn.Conv2d(in_channels=input_channel, out_channels=64, kernel_size=2), nn.ReLU(),
             nn.Conv2d(64, 128, 2), nn.ReLU(),
@@ -39,7 +42,10 @@ class CNNBase(nn.Module):
             nn.Linear(hidden_size, out_size), nn.ReLU()
         )
         # try:
-            # self.load_state_dict()
+        #     self.load_state_dict(torch.load(os.path.join(model_path, 'base.pt')))
+        # except FileNotFoundError as e:
+        #     print(e)
+        #     torch.save(self.state_dict(), os.path.join(model_path, 'base.pt'))
 
     def forward(self, input):
         x = input
@@ -49,13 +55,13 @@ class CNNBase(nn.Module):
 
 
 class Critic(nn.Module):
-    def __init__(self, map_height, map_width):
+    def __init__(self, base: CNNBase):
         super(Critic, self).__init__()
-        hidden_size, out_size = 256, 128
-        self.shared = CNNBase(map_height, map_width, 18, hidden_size, out_size)
+
+        self.shared = base
 
         self.mlp_component = nn.Sequential(
-            nn.Linear(in_features=out_size, out_features=64), nn.ReLU(),
+            nn.Linear(in_features=base.out_size, out_features=64), nn.ReLU(),
             nn.Linear(in_features=64, out_features=32), nn.ReLU(),
         )
         self.critic_linear = nn.Linear(32, 1)
@@ -68,28 +74,36 @@ class Critic(nn.Module):
         return x
 
 
-class ActorCritic(nn.Module):
-    def __init__(self):
-        pass
+# class ActorCritic(nn.Module):
+#     def __init__(self, map_height, map_width):
+#         super(ActorCritic, self).__init__()
+#         hidden_size, out_size = 256, 128
+#         self.shared = CNNBase(map_height, map_width, 18, hidden_size, out_size)
+#         pass
 
 
 class Actor(nn.Module):
-    def __init__(self, actor_type):
+    def __init__(self, in_size, actor_type):
         super(Actor, self).__init__()
         assert actor_type in AGENT_COLLECTION
+
+
+    def forward(self, base_out, loc_info):
+        pass
+
 
 
 if __name__ == '__main__':
     print(UTT_DICT)
     inx = torch.randn(1, 18, 8, 8)
-    # model = CNNBase(6, 6, 18)
+
+    base = CNNBase(6, 6, 18)
+    critic = Critic(base)
+    # model = Critic(6, 6)
     # print(model)
     # print(model(inx).size())
     # print(model(inx))
-    model = Critic(6, 6)
-    print(model)
-    print(model(inx).size())
-    print(model(inx))
+    print(critic)
     pass
 
 
