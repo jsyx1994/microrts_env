@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from rts_wrapper.datatypes import AGENT_COLLECTION
+from rts_wrapper.datatypes import AGENT_COLLECTION, UTT_DICT
 
 
 class Flatten(nn.Module):
@@ -80,6 +80,7 @@ class Actor(nn.Module):
 
 
 if __name__ == '__main__':
+    print(UTT_DICT)
     inx = torch.randn(1, 18, 8, 8)
     # model = CNNBase(6, 6, 18)
     # print(model)
