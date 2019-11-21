@@ -1,6 +1,8 @@
 from dataclasses import dataclass, asdict
 from typing import List, Any, Dict, Optional
 from enum import Enum
+from dacite import from_dict
+import json
 
 ACTION_TYPE_NONE = 0
 ACTION_TYPE_MOVE = 1
@@ -211,6 +213,7 @@ class Config:
     max_episodes: Optional[int] = 10000
     period: Optional[int] = 5
     render: Optional[bool] = True
+    utt: Optional[dict] = from_dict(data_class=UnitTypeTable, data=json.loads(UTT_ORI))
     # auto_port: Optional[bool] = False
     client_port: Optional[int] = 0
     microrts_path: Optional[str] = "~/microrts_env"
@@ -252,9 +255,14 @@ class PlayerAction:
     unitAction: Optional[UnitAction] = UnitAction()
 
 
-if __name__ == '__main__':
-    from dacite import from_dict
-    import json
+from dacite import from_dict
+import json
 
-    x = from_dict(data_class=UnitTypeTable, data=json.loads(UTT_ORI))
-    print(x)
+UTT_DICT = {}
+for t in from_dict(data_class=UnitTypeTable, data=json.loads(UTT_ORI)).unitTypes:
+    UTT_DICT[t.name] = t
+
+# print(UTT_DICT)
+
+if __name__ == '__main__':
+    print(UTT_DICT)
