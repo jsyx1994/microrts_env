@@ -40,6 +40,7 @@ class MicroRts(gym.Env):
 
         })
 
+
         self.config = config
         if config:
             Thread(target=self.init_client).start()
@@ -62,8 +63,8 @@ class MicroRts(gym.Env):
                          'microrts-master/out/artifacts/microrts_master_jar/microrts-master.jar'),
             "--port", str(self.port),
             "--map", os.path.join(os.path.expanduser(self.config.microrts_path), self.config.map_path),
-            "--ai1_type",
-            "--ai2_type",
+            "--ai1_type", self.config.ai1_type,
+            "--ai2_type", self.config.ai2_type,
             "--maxCycles", str(self.config.max_cycles),
             "--maxEpisodes", str(self.config.max_episodes),
             # "more",
