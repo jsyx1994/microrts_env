@@ -69,9 +69,10 @@ class Critic(nn.Module):
     def forward(self, input):
         x = input
         x = self.shared(x)
+        inner_out = x
         x = self.mlp_component(x)
         x = self.critic_linear(x)
-        return x
+        return x, inner_out
 
 
 # class ActorCritic(nn.Module):
@@ -86,25 +87,47 @@ class Actor(nn.Module):
     def __init__(self, in_size, actor_type):
         super(Actor, self).__init__()
         assert actor_type in AGENT_COLLECTION
+        self.main = nn.Sequential(
+            nn.Linear(in_size, 1)
+        )
+
+    def forward(self, base_out):
+        return self.main(base_out)
 
 
-    def forward(self, base_out, loc_info):
-        pass
+def gradient_for_inner_connection_out_of_cnnbase_test():
+    from torch import optim
+    torch.manual_seed(1)
+    input_data = torch.randn(1, 18, 6, 6)
+    base = CNNBase(6, 6, 18)
+    critic = Critic(base)
+
+    value, cnnout = critic(input_data)
+    print(value)
+
+    actor = Actor(cnnout.size(1), "Worker")
+
+    actor_out = actor(cnnout)
+    print(actor_out)
+    loss = nn.MSELoss()(actor_out, torch.Tensor([[100]]))
+    print(loss)
+
+    actor.zero_grad()
+    loss.backward()
+
+    params = list(actor.parameters()) + list(critic.parameters())
+    # print(type(params))
+    optimizer = optim.SGD(params, lr=.1)
+    optimizer.step()
+
+    print(critic(input_data)[0])
+    print(actor(cnnout))
+
 
 
 
 if __name__ == '__main__':
-    print(UTT_DICT)
-    inx = torch.randn(1, 18, 8, 8)
-
-    base = CNNBase(6, 6, 18)
-    critic = Critic(base)
-    # model = Critic(6, 6)
-    # print(model)
-    # print(model(inx).size())
-    # print(model(inx))
-    print(critic)
-    pass
+    gradient_for_inner_connection_out_of_cnnbase_test()
 
 
 
