@@ -32,7 +32,7 @@ def pa_to_jsonable(pas: List[PlayerAction]) -> str:
     return json.dumps(ans)
 
 
-def parse_game_state(gs: GameState, player):
+def state_encoder(gs: GameState, player):
     current_player = player
 
     # Used for type indexing
@@ -89,8 +89,28 @@ def parse_game_state(gs: GameState, player):
     # print(spatial_features.shape)
     return spatial_features
 
-def utt_encoder(utt_str: str):
 
+def state_encoder_refine(gs: GameState, player):
+    current_player = player
+    # AGENT_COLLECTION
+    pgs = gs.pgs
+    w = pgs.width
+    h = pgs.height
+
+    channel_wall = np.array([int(x) for x in pgs.terrain]).reshape((1, h, w))
+    channel_resource = np.zeros((8, h, w))
+    channel_type = np.zeros((len(UNIT_COLLECTION), h, w))
+    channel_hp_ratio = np.zeros((1, h, w))
+    channel_owner = np.zeros((2, h, w))
+    channel_resource_carried = np.zeros()
+
+
+
+
+    pass
+
+
+def utt_encoder(utt_str: str):
     max_value = 10000000
     min_value = -max_value
 
@@ -188,31 +208,48 @@ def utt_encoder(utt_str: str):
             can_attack[1] = 1
 
         ans = np.hstack(
-            (id,    # 7
+            (id,  # 7
              cost,  # 1
-             hp,    # 2
-             min_damage,    # 1
-             max_damage,    # 1
+             hp,  # 2
+             min_damage,  # 1
+             max_damage,  # 1
              attack_range,  # 1
              produce_time,  # 1
-             move_time,     # 1
-             attack_time,   # 1
+             move_time,  # 1
+             attack_time,  # 1
              harvest_time,  # 1
-             return_time,   # 1
-             harvest_amount,# 1
+             return_time,  # 1
+             harvest_amount,  # 1
              sight_radius,  # 1
-             is_resource,   # 2
+             is_resource,  # 2
              is_stockplie,  # 2
-             can_harvest,   # 2
-             can_move,      # 2
-             can_attack,    # 2
-             produces,      # 7
-             produced_by    # 7
+             can_harvest,  # 2
+             can_move,  # 2
+             can_attack,  # 2
+             produces,  # 7
+             produced_by  # 7
              )
         )
         encoder_dict[ut.name] = ans
 
     return encoder_dict
+
+
+def unit_instance_encoder(map_height, map_width, unit: Unit):
+    owner = np.zeros(2)
+    owner[unit.player] = 1
+    x_pos = np.array([unit.x / map_width])
+    y_pos = np.array([unit.y / map_height])
+    hp_ratio = np.array([unit.hitpoints / UTT_DICT[unit.type].hp])
+    resource = resource_encoder(unit.resources)
+    feature = np.hstack((
+        owner,
+        x_pos,
+        y_pos,
+        resource,
+        hp_ratio,
+    ))
+    return feature
 
 
 def network_action_translator(unit_validaction_choices) -> List[PlayerAction]:
@@ -342,3 +379,48 @@ def network_action_translator(unit_validaction_choices) -> List[PlayerAction]:
         #     input()
         pas.append(pa)
     return pas
+
+
+def resource_encoder(amount, feature_length=8, amount_threshold=2):
+    resource = np.zeros(8)
+    if amount == 0:
+        resource[0] = 1
+        return resource
+    bit_pos = 1
+    # amount_threshold = 2
+    for _ in range(1, feature_length):
+        if amount > amount_threshold:
+            bit_pos += 1
+            amount_threshold *= 2
+        else:
+            resource[bit_pos] = 1
+            return resource
+
+    resource[-1] = 1
+    return resource
+
+
+def demo_unit_instance_encoder():
+    unit_str = '{"type":"Base", "ID":20, "player":0, "x":2, "y":2, "resources":0, "hitpoints":10}'
+    unit = from_dict(data_class=Unit, data=json.loads(unit_str))
+    print(unit_instance_encoder(8, 8, unit))
+
+
+def test_state_encoder():
+    str_gs = '{"reward":150.0,"done":false,"validActions":[{"unit":{"type":"Worker", "ID":22, "player":0, "x":0, "y":4, "resources":0, "hitpoints":1},"unitActions":[{"type":1, "parameter":0} ,{"type":1, "parameter":2} ,{"type":0, "parameter":10}]},{"unit":{"type":"Worker", "ID":24, "player":0, "x":3, "y":4, "resources":0, "hitpoints":1},"unitActions":[{"type":1, "parameter":0} ,{"type":1, "parameter":1} ,{"type":1, "parameter":2} ,{"type":1, "parameter":3} ,{"type":0, "parameter":10}]}],"gs":{"time":187,"pgs":{"width":6,"height":6,"terrain":"000000000000000000000000000000000000","players":[{"ID":0, "resources":2},{"ID":1, "resources":5}],"units":[{"type":"Resource", "ID":0, "player":-1, "x":0, "y":0, "resources":229, "hitpoints":1},{"type":"Base", "ID":19, "player":1, "x":5, "y":5, "resources":0, "hitpoints":10},{"type":"Base", "ID":20, "player":0, "x":2, "y":2, "resources":0, "hitpoints":10},{"type":"Worker", "ID":22, "player":0, "x":0, "y":4, "resources":0, "hitpoints":1},{"type":"Worker", "ID":23, "player":0, "x":5, "y":4, "resources":0, "hitpoints":1},{"type":"Worker", "ID":24, "player":0, "x":3, "y":4, "resources":0, "hitpoints":1},{"type":"Worker", "ID":25, "player":0, "x":0, "y":1, "resources":1, "hitpoints":1},{"type":"Worker", "ID":26, "player":0, "x":1, "y":4, "resources":0, "hitpoints":1}]},"actions":[{"ID":20, "time":153, "action":{"type":4, "parameter":1, "unitType":"Worker"}},{"ID":26, "time":178, "action":{"type":1, "parameter":1}},{"ID":19, "time":180, "action":{"type":0, "parameter":10}},{"ID":25, "time":182, "action":{"type":1, "parameter":1}},{"ID":23, "time":185, "action":{"type":1, "parameter":3}}]}}'
+    gs_wrapper = from_dict(data_class=GsWrapper, data=json.loads(str_gs))
+    print()
+
+
+def test_resource_encoder():
+    print(resource_encoder(0))  # [1. 0. 0. 0. 0. 0. 0. 0.]
+    print(resource_encoder(1))  # [0. 1. 0. 0. 0. 0. 0. 0.]
+    print(resource_encoder(2))  # [0. 1. 0. 0. 0. 0. 0. 0.]
+    print(resource_encoder(4))  # [0. 1. 0. 0. 0. 0. 0. 0.]
+    print(resource_encoder(17))  # [0. 1. 0. 0. 0. 0. 0. 0.]
+    print(resource_encoder(63))  # [0. 0. 0. 0. 0. 0. 1. 0.]
+    print(resource_encoder(14453))  # [0. 0. 0. 0. 0. 0. 0. 1.]
+
+
+if __name__ == '__main__':
+    pass
