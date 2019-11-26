@@ -24,9 +24,13 @@ UNIT_TYPE_NAME_WORKER = 'Worker'
 UNIT_TYPE_NAME_LIGHT = 'Light'
 UNIT_TYPE_NAME_HEAVY = 'Heavy'
 UNIT_TYPE_NAME_RANGED = 'Ranged'
+UNIT_TYPE_NAME_RESOURCE = 'Resource'
 
 AGENT_COLLECTION = [UNIT_TYPE_NAME_BASE, UNIT_TYPE_NAME_BARRACKS, UNIT_TYPE_NAME_WORKER, UNIT_TYPE_NAME_LIGHT,
                     UNIT_TYPE_NAME_HEAVY, UNIT_TYPE_NAME_RANGED]
+
+# unit collection is used in the real state encoding
+UNIT_COLLECTION = AGENT_COLLECTION + ['Resource']
 
 DIRECTION_OFFSET_X = [0, 1, 0, -1]
 DIRECTION_OFFSET_Y = [-1, 0, 1, 0]
@@ -265,4 +269,4 @@ for t in from_dict(data_class=UnitTypeTable, data=json.loads(UTT_ORI)).unitTypes
 # print(UTT_DICT)
 
 if __name__ == '__main__':
-    print(UTT_DICT)
+    print(UNIT_COLLECTION)

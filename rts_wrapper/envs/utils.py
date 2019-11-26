@@ -32,82 +32,105 @@ def pa_to_jsonable(pas: List[PlayerAction]) -> str:
     return json.dumps(ans)
 
 
+# def state_encoder(gs: GameState, player):
+#     current_player = player
+#
+#     # Used for type indexing
+#     utt = ['Base', 'Barracks', 'Worker', 'Light', 'Heavy', 'Ranged']
+#     type_idx = {}
+#     for i, ut in zip(range(len(utt)), utt):
+#         type_idx[ut] = i
+#
+#     time = gs.time
+#     pgs = gs.pgs
+#     actions = gs.actions
+#     w = pgs.width
+#     h = pgs.height
+#     units = pgs.units
+#
+#     # Initialization of spatial features
+#     spatial_features = np.zeros((18, h, w))
+#
+#     # channel_wall
+#     spatial_features[0] = np.array([int(x) for x in pgs.terrain]).reshape((1, h, w))
+#
+#     # other channels
+#     channel_resource = spatial_features[1]
+#     channel_self_type = spatial_features[2:8]
+#     channel_self_hp = spatial_features[8]
+#     channel_self_resource_carried = spatial_features[9]
+#     channel_enemy_type = spatial_features[10:16]
+#     channel_enemy_hp = spatial_features[16]
+#     channel_enemy_resource_carried = spatial_features[17]
+#
+#     for unit in units:
+#         _player = unit.player
+#         _type = unit.type
+#         x = unit.x
+#         y = unit.y
+#         # neutral
+#         if _player == -1:
+#             channel_resource[x][y] = unit.resources
+#             # channel_resource[x][y] = 1
+#
+#         elif _player == current_player:
+#             # get the index of this type
+#             idx = type_idx[_type]
+#             channel_self_type[idx][x][y] = 1
+#             channel_self_hp[x][y] = unit.hitpoints
+#             channel_self_resource_carried[x][y] = unit.resources
+#
+#         else:
+#             idx = type_idx[_type]
+#             channel_enemy_type[idx][x][y] = 1
+#             channel_enemy_hp[x][y] = unit.hitpoints
+#             channel_enemy_resource_carried[x][y] = unit.resources
+#     # print(spatial_features)
+#     # print(spatial_features.shape)
+#     return spatial_features
+
+
 def state_encoder(gs: GameState, player):
-    current_player = player
-
-    # Used for type indexing
-    utt = ['Base', 'Barracks', 'Worker', 'Light', 'Heavy', 'Ranged']
-    type_idx = {}
-    for i, ut in zip(range(len(utt)), utt):
-        type_idx[ut] = i
-
-    time = gs.time
-    pgs = gs.pgs
-    actions = gs.actions
-    w = pgs.width
-    h = pgs.height
-    units = pgs.units
-
-    # Initialization of spatial features
-    spatial_features = np.zeros((18, h, w))
-
-    # channel_wall
-    spatial_features[0] = np.array([int(x) for x in pgs.terrain]).reshape((1, h, w))
-
-    # other channels
-    channel_resource = spatial_features[1]
-    channel_self_type = spatial_features[2:8]
-    channel_self_hp = spatial_features[8]
-    channel_self_resource_carried = spatial_features[9]
-    channel_enemy_type = spatial_features[10:16]
-    channel_enemy_hp = spatial_features[16]
-    channel_enemy_resource_carried = spatial_features[17]
-
-    for unit in units:
-        _player = unit.player
-        _type = unit.type
-        x = unit.x
-        y = unit.y
-        # neutral
-        if _player == -1:
-            channel_resource[x][y] = unit.resources
-            # channel_resource[x][y] = 1
-
-        elif _player == current_player:
-            # get the index of this type
-            idx = type_idx[_type]
-            channel_self_type[idx][x][y] = 1
-            channel_self_hp[x][y] = unit.hitpoints
-            channel_self_resource_carried[x][y] = unit.resources
-
-        else:
-            idx = type_idx[_type]
-            channel_enemy_type[idx][x][y] = 1
-            channel_enemy_hp[x][y] = unit.hitpoints
-            channel_enemy_resource_carried[x][y] = unit.resources
-    # print(spatial_features)
-    # print(spatial_features.shape)
-    return spatial_features
-
-
-def state_encoder_refine(gs: GameState, player):
     current_player = player
     # AGENT_COLLECTION
     pgs = gs.pgs
     w = pgs.width
     h = pgs.height
+    units = pgs.units
 
-    channel_wall = np.array([int(x) for x in pgs.terrain]).reshape((1, h, w))
-    channel_resource = np.zeros((8, h, w))
+    channel_terrain = np.array([int(x) for x in pgs.terrain]).reshape((1, h, w))
     channel_type = np.zeros((len(UNIT_COLLECTION), h, w))
     channel_hp_ratio = np.zeros((1, h, w))
-    channel_owner = np.zeros((2, h, w))
-    channel_resource_carried = np.zeros()
+    channel_resource = np.zeros((8, h, w))
 
+    channel_is_ally = np.zeros((2, h, w))
 
+    for unit in units:
+        _owner = unit.player
+        _type = unit.type
+        _x, _y = unit.x, unit.y
+        _resource_carried = unit.resources
+        _hp = unit.hitpoints
+        _id = unit.ID
+        _one_hot_resource_pos = list(resource_encoder(_resource_carried)).index(1)
+        _one_hot_type_pos = UNIT_COLLECTION.index(_type)
+        _one_hot_is_ally_pos = int((current_player == _owner))
+        # channel_is_ally[_player][_x][_y] = 1
+        channel_hp_ratio[0][_x][_y] = _hp / UTT_DICT[_type].hp
+        channel_is_ally[_one_hot_is_ally_pos][_x][_y] = 1
+        channel_type[_one_hot_type_pos][_x][_y] = 1
+        channel_resource[_one_hot_resource_pos][_x][_y] = 1
 
-
-    pass
+    spatial_features = np.vstack(
+        (
+            channel_is_ally,
+            channel_type,
+            channel_resource,
+            channel_hp_ratio,
+            channel_terrain
+        ),
+    )
+    return spatial_features
 
 
 def utt_encoder(utt_str: str):
@@ -400,6 +423,33 @@ def resource_encoder(amount, feature_length=8, amount_threshold=2):
     return resource
 
 
+def unit_feature_encoder(unit:Unit, map_height, map_weight):
+    unit_type = unit.type
+    unit_x = unit.x
+    unit_y = unit.y
+    unit_resource = unit.resources
+    unit_hp = unit.hitpoints
+
+    type_feature = np.zeros(len(UNIT_COLLECTION))
+    type_feature[UNIT_COLLECTION.index(unit_type)] = 1
+
+    x_ratio_feature = np.array([unit_x / map_weight])
+    y_ratio_feature = np.array([unit_y / map_height])
+    resource_feature = resource_encoder(unit_resource)
+    hp_ratio_feature = np.array([unit_hp / UTT_DICT[unit_type].hp])
+
+    unit_feature = np.vstack(
+        (
+            type_feature,
+            x_ratio_feature,
+            y_ratio_feature,
+            resource_feature,
+            hp_ratio_feature
+        )
+    )
+    return unit_feature
+
+
 def demo_unit_instance_encoder():
     unit_str = '{"type":"Base", "ID":20, "player":0, "x":2, "y":2, "resources":0, "hitpoints":10}'
     unit = from_dict(data_class=Unit, data=json.loads(unit_str))
@@ -423,4 +473,4 @@ def test_resource_encoder():
 
 
 if __name__ == '__main__':
-    pass
+    test_resource_encoder()

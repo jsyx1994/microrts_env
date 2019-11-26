@@ -1,10 +1,15 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from rts_wrapper.datatypes import AGENT_COLLECTION, UTT_DICT
+from rts_wrapper.datatypes import *
 from algo.config import model_path
 import os
+import numpy as np
 
+from rts_wrapper.datatypes import Unit
+from rts_wrapper.envs.utils import utt_encoder
+
+encoded_utt_dict = utt_encoder(UTT_ORI)
 
 class Flatten(nn.Module):
     def forward(self, x):
@@ -55,7 +60,7 @@ class CNNBase(nn.Module):
 
 
 class Critic(nn.Module):
-    def __init__(self, base: CNNBase):
+    def __init__(self, base: CNNBase = None):
         super(Critic, self).__init__()
 
         self.shared = base
@@ -74,28 +79,52 @@ class Critic(nn.Module):
         x = self.critic_linear(x)
         return x, inner_out
 
-
-# class ActorCritic(nn.Module):
-#     def __init__(self, map_height, map_width):
-#         super(ActorCritic, self).__init__()
-#         hidden_size, out_size = 256, 128
-#         self.shared = CNNBase(map_height, map_width, 18, hidden_size, out_size)
-#         pass
+    def value_evaluate(self, input):
+        x = input
+        x = self.shared(x)
+        x = self.mlp_component(x)
+        x = self.critic_linear(x)
+        return x
 
 
 class Actor(nn.Module):
-    def __init__(self, in_size, actor_type):
+    def __init__(self, base_out_size, actor_type: str, unit_feature_size=18, global_feature_size=2):
         super(Actor, self).__init__()
         assert actor_type in AGENT_COLLECTION
-        self.main = nn.Sequential(
-            nn.Linear(in_size, 1)
+
+        self.actor_type = actor_type
+        self.encoded_utt = torch.from_numpy(encoded_utt_dict[actor_type])
+
+        self.base_out_layer = nn.Sequential(
+            nn.Linear(base_out_size, 256), nn.ReLU(),
+            nn.Linear(256, 128), nn.ReLU(),
+        )
+        self.utt_embedding_layer = nn.Sequential(
+            nn.Linear(self.encoded_utt.size(0) + unit_feature_size, 256), nn.ReLU(),
+            nn.Linear(256, 128), nn.ReLU(),
         )
 
-    def forward(self, base_out):
+        self.pre_gru_layer = nn.Sequential(
+            nn.Linear()
+        )
+        # gru coding here
+
+        self.actors = nn.ModuleDict({
+            UNIT_TYPE_NAME_WORKER: nn.Sequential(
+
+            ),
+
+
+        })
+
+        print(self.encoded_utt.size(0))
+
+    def forward(self, base_out, unit_feature, scalar_feature):
         return self.main(base_out)
 
 
 def gradient_for_inner_connection_out_of_cnnbase_test():
+    """test result gradient works"""
     from torch import optim
     torch.manual_seed(1)
     input_data = torch.randn(1, 18, 6, 6)
@@ -124,10 +153,5 @@ def gradient_for_inner_connection_out_of_cnnbase_test():
     print(actor(cnnout))
 
 
-
-
 if __name__ == '__main__':
-    gradient_for_inner_connection_out_of_cnnbase_test()
-
-
-
+    pass

@@ -25,9 +25,9 @@ class MicroRts(gym.Env):
         self.random = rd
         self.unit_action_map = {}
         self.port = get_available_port()
-        self.encoded_utt_dict = utt_encoder(UTT_ORI)
-        print(self.encoded_utt_dict)
-        # print(config.utt)s
+        # self.encoded_utt_dict = utt_encoder(UTT_ORI)
+        # print(self.encoded_utt_dict)
+        # print(config.utt)
         for action in action_collection:
             self.unit_action_map[action.__type_name__] = action
 
@@ -51,9 +51,6 @@ class MicroRts(gym.Env):
         print(MicroRts.reward_range)
         self.establish_connection()
 
-    def get_encoded_utt_dict(self):
-        return self.encoded_utt_dict
-    
     def init_client(self):
         """
         before-interacting setting-ups
@@ -102,7 +99,8 @@ class MicroRts(gym.Env):
     def signal_wrapper(self, raw):
         curr_player = int(raw.split('\n')[0].split()[1])
         gs_wrapper = from_dict(data_class=GsWrapper, data=json.loads(raw.split('\n')[1]))
-        observation = parse_game_state(gs_wrapper.gs, curr_player)
+        print(raw)
+        observation = state_encoder(gs_wrapper.gs, curr_player)
         reward = gs_wrapper.reward
         done = gs_wrapper.done
         self.game_time = gs_wrapper.gs.time
