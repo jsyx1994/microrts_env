@@ -9,7 +9,7 @@ import numpy as np
 from rts_wrapper.datatypes import *
 from threading import Thread
 
-action_collection = [BaseAction, BarracksAction, WorkerActon, LightAction, HeavyAction, RangedAction]
+action_collection = [BaseAction, BarracksAction, WorkerAction, LightAction, HeavyAction, RangedAction]
 
 
 class MicroRts(gym.Env):
@@ -34,7 +34,7 @@ class MicroRts(gym.Env):
         self.action_space = DictSpace({
             'Base': spaces.Discrete(BaseAction.__members__.items().__len__()),
             'Barracks': spaces.Discrete(BarracksAction.__members__.items().__len__()),
-            'Worker': spaces.Discrete(WorkerActon.__members__.items().__len__()),
+            'Worker': spaces.Discrete(WorkerAction.__members__.items().__len__()),
             'Light': spaces.Discrete(LightAction.__members__.items().__len__()),
             'Heavy': spaces.Discrete(HeavyAction.__members__.items().__len__()),
             'Ranged': spaces.Discrete(RangedAction.__members__.items().__len__()),
@@ -105,7 +105,12 @@ class MicroRts(gym.Env):
         done = gs_wrapper.done
         self.game_time = gs_wrapper.gs.time
         info = {
-            "unit_valid_actions": gs_wrapper.validActions
+            "unit_valid_actions": gs_wrapper.validActions,  # friends and their valid actions
+            # "units_list": [u for u in gs_wrapper.gs.pgs.units],
+            # "enemies_actions": None,
+            "current_player": curr_player,
+            "player_resources": [p.resources for p in gs_wrapper.gs.pgs.players],
+            "map_size": [gs_wrapper.gs.pgs.height, gs_wrapper.gs.pgs.width]
         }
         return observation, reward, done, info
 

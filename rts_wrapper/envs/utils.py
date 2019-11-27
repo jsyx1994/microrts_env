@@ -31,7 +31,6 @@ def pa_to_jsonable(pas: List[PlayerAction]) -> str:
     # json.dumps(ans)
     return json.dumps(ans)
 
-
 # def state_encoder(gs: GameState, player):
 #     current_player = player
 #
@@ -55,7 +54,7 @@ def pa_to_jsonable(pas: List[PlayerAction]) -> str:
 #     spatial_features[0] = np.array([int(x) for x in pgs.terrain]).reshape((1, h, w))
 #
 #     # other channels
-#     channel_resource = spatial_features[1]
+#     channel_resource = spatial_features[1]2
 #     channel_self_type = spatial_features[2:8]
 #     channel_self_hp = spatial_features[8]
 #     channel_self_resource_carried = spatial_features[9]
@@ -255,24 +254,24 @@ def utt_encoder(utt_str: str):
         )
         encoder_dict[ut.name] = ans
 
-    return encoder_dict
+    return encoder_dict, ans.size
 
 
-def unit_instance_encoder(map_height, map_width, unit: Unit):
-    owner = np.zeros(2)
-    owner[unit.player] = 1
-    x_pos = np.array([unit.x / map_width])
-    y_pos = np.array([unit.y / map_height])
-    hp_ratio = np.array([unit.hitpoints / UTT_DICT[unit.type].hp])
-    resource = resource_encoder(unit.resources)
-    feature = np.hstack((
-        owner,
-        x_pos,
-        y_pos,
-        resource,
-        hp_ratio,
-    ))
-    return feature
+# def unit_instance_encoder(map_height, map_width, unit: Unit):
+#     owner = np.zeros(2)
+#     owner[unit.player] = 1
+#     x_pos = np.array([unit.x / map_width])
+#     y_pos = np.array([unit.y / map_height])
+#     hp_ratio = np.array([unit.hitpoints / UTT_DICT[unit.type].hp])
+#     resource = resource_encoder(unit.resources)
+#     feature = np.hstack((
+#         owner,
+#         x_pos,
+#         y_pos,
+#         resource,
+#         hp_ratio,
+#     ))
+#     return feature
 
 
 def network_action_translator(unit_validaction_choices) -> List[PlayerAction]:
@@ -342,25 +341,25 @@ def network_action_translator(unit_validaction_choices) -> List[PlayerAction]:
                 issue_produce(UNIT_TYPE_NAME_RANGED)
 
         elif unit.type == UNIT_TYPE_NAME_WORKER:
-            if choice == WorkerActon.DO_NONE:
+            if choice == WorkerAction.DO_NONE:
                 pa.unitAction.type = ACTION_TYPE_NONE
 
-            elif choice == WorkerActon.DO_UP_PROBE:
-                pa.unitAction = get_valid_probe_action(WorkerActon.DO_UP_PROBE)
+            elif choice == WorkerAction.DO_UP_PROBE:
+                pa.unitAction = get_valid_probe_action(WorkerAction.DO_UP_PROBE)
 
-            elif choice == WorkerActon.DO_RIGHT_PROBE:
-                pa.unitAction = get_valid_probe_action(WorkerActon.DO_RIGHT_PROBE)
+            elif choice == WorkerAction.DO_RIGHT_PROBE:
+                pa.unitAction = get_valid_probe_action(WorkerAction.DO_RIGHT_PROBE)
 
-            elif choice == WorkerActon.DO_DOWN_PROBE:
-                pa.unitAction = get_valid_probe_action(WorkerActon.DO_DOWN_PROBE)
+            elif choice == WorkerAction.DO_DOWN_PROBE:
+                pa.unitAction = get_valid_probe_action(WorkerAction.DO_DOWN_PROBE)
 
-            elif choice == WorkerActon.DO_LEFT_PROBE:
-                pa.unitAction = get_valid_probe_action(WorkerActon.DO_LEFT_PROBE)
+            elif choice == WorkerAction.DO_LEFT_PROBE:
+                pa.unitAction = get_valid_probe_action(WorkerAction.DO_LEFT_PROBE)
 
-            elif choice == WorkerActon.DO_LAY_BASE:
+            elif choice == WorkerAction.DO_LAY_BASE:
                 issue_produce(UNIT_TYPE_NAME_BASE)
 
-            elif choice == WorkerActon.DO_LAY_BARRACKS:
+            elif choice == WorkerAction.DO_LAY_BARRACKS:
                 issue_produce(UNIT_TYPE_NAME_BARRACKS)
 
         elif unit.type == UNIT_TYPE_NAME_LIGHT:
@@ -423,7 +422,7 @@ def resource_encoder(amount, feature_length=8, amount_threshold=2):
     return resource
 
 
-def unit_feature_encoder(unit:Unit, map_height, map_weight):
+def unit_feature_encoder(unit:Unit, map_height, map_width):
     unit_type = unit.type
     unit_x = unit.x
     unit_y = unit.y
@@ -433,12 +432,12 @@ def unit_feature_encoder(unit:Unit, map_height, map_weight):
     type_feature = np.zeros(len(UNIT_COLLECTION))
     type_feature[UNIT_COLLECTION.index(unit_type)] = 1
 
-    x_ratio_feature = np.array([unit_x / map_weight])
+    x_ratio_feature = np.array([unit_x / map_width])
     y_ratio_feature = np.array([unit_y / map_height])
     resource_feature = resource_encoder(unit_resource)
     hp_ratio_feature = np.array([unit_hp / UTT_DICT[unit_type].hp])
 
-    unit_feature = np.vstack(
+    unit_feature = np.hstack(
         (
             type_feature,
             x_ratio_feature,
@@ -450,10 +449,10 @@ def unit_feature_encoder(unit:Unit, map_height, map_weight):
     return unit_feature
 
 
-def demo_unit_instance_encoder():
-    unit_str = '{"type":"Base", "ID":20, "player":0, "x":2, "y":2, "resources":0, "hitpoints":10}'
-    unit = from_dict(data_class=Unit, data=json.loads(unit_str))
-    print(unit_instance_encoder(8, 8, unit))
+# def demo_unit_instance_encoder():
+#     unit_str = '{"type":"Base", "ID":20, "player":0, "x":2, "y":2, "resources":0, "hitpoints":10}'
+#     unit = from_dict(data_class=Unit, data=json.loads(unit_str))
+#     print(unit_instance_encoder(8, 8, unit))
 
 
 def test_state_encoder():

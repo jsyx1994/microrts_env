@@ -47,3 +47,19 @@ register(
 
     )}
 )
+
+register(
+    id='OneWorkerAndResources-v0',
+    entry_point='rts_wrapper.envs:MicroRts',
+    kwargs={'config': Config(
+        ai1_type='socketAI',
+        ai2_type='passive',
+        map_path='/home/toby/microrts_env/maps/4x4/baseTwoWorkers4x4.xml',
+        height=4,
+        width=4,
+        render=True,
+        max_cycles=300,
+        max_episodes=10000,
+
+    )}
+)

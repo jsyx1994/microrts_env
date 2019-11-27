@@ -87,7 +87,7 @@ class BarracksAction(Enum):
     DO_LAY_RANGED = 3
 
 
-class WorkerActon(Enum):
+class WorkerAction(Enum):
     __type_name__ = UNIT_TYPE_NAME_WORKER
 
     DO_NONE = -1
@@ -213,6 +213,7 @@ class Config:
     ai1_type: str
     ai2_type: str
     map_path: str
+    self_play: Optional[bool] = False
     max_cycles: Optional[int] = 5000
     max_episodes: Optional[int] = 10000
     period: Optional[int] = 5

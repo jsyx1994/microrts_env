@@ -7,9 +7,10 @@ import os
 import numpy as np
 
 from rts_wrapper.datatypes import Unit
-from rts_wrapper.envs.utils import utt_encoder
+from rts_wrapper.envs.utils import utt_encoder, unit_feature_encoder
 
-encoded_utt_dict = utt_encoder(UTT_ORI)
+encoded_utt_dict, encoded_utt_feature_size = utt_encoder(UTT_ORI)
+
 
 class Flatten(nn.Module):
     def forward(self, x):
@@ -28,7 +29,7 @@ class NNBase(nn.Module):
 
 
 class CNNBase(nn.Module):
-    def __init__(self, map_height, map_width, input_channel, hidden_size=512, out_size=256):
+    def __init__(self, map_height, map_width, input_channel, hidden_size=256, out_size=128, scalar_feature_size=1):
         super(CNNBase, self).__init__()
         # self.map_height = map_height
         # self.map_width = map_width
@@ -43,7 +44,7 @@ class CNNBase(nn.Module):
         )
 
         self.linear_component = nn.Sequential(
-            nn.Linear(64 * map_height * map_width, hidden_size), nn.ReLU(),
+            nn.Linear(64 * map_height * map_width + scalar_feature_size, hidden_size), nn.ReLU(),
             nn.Linear(hidden_size, out_size), nn.ReLU()
         )
         # try:
@@ -52,9 +53,10 @@ class CNNBase(nn.Module):
         #     print(e)
         #     torch.save(self.state_dict(), os.path.join(model_path, 'base.pt'))
 
-    def forward(self, input):
-        x = input
+    def forward(self, spatial_feature, scalar_feature):
+        x = spatial_feature
         x = self.conv_component(x)
+        x = torch.cat([x, scalar_feature], dim=1)
         x = self.linear_component(x)
         return x
 
@@ -79,48 +81,67 @@ class Critic(nn.Module):
         x = self.critic_linear(x)
         return x, inner_out
 
-    def value_evaluate(self, input):
+    def get_value_evaluated(self, input):
         x = input
         x = self.shared(x)
         x = self.mlp_component(x)
         x = self.critic_linear(x)
         return x
 
+    def get_inner_flow(self, input):
+        x = input
+        x = self.shared(x)
+        return x
+
 
 class Actor(nn.Module):
-    def __init__(self, base_out_size, actor_type: str, unit_feature_size=18, global_feature_size=2):
+    def __init__(self, base_out_size, unit_feature_size=18, scalar_feature_size=2):
         super(Actor, self).__init__()
-        assert actor_type in AGENT_COLLECTION
-
-        self.actor_type = actor_type
-        self.encoded_utt = torch.from_numpy(encoded_utt_dict[actor_type])
 
         self.base_out_layer = nn.Sequential(
             nn.Linear(base_out_size, 256), nn.ReLU(),
             nn.Linear(256, 128), nn.ReLU(),
         )
         self.utt_embedding_layer = nn.Sequential(
-            nn.Linear(self.encoded_utt.size(0) + unit_feature_size, 256), nn.ReLU(),
+            nn.Linear(encoded_utt_feature_size + unit_feature_size, 256), nn.ReLU(),
             nn.Linear(256, 128), nn.ReLU(),
         )
 
         self.pre_gru_layer = nn.Sequential(
-            nn.Linear()
+            nn.Linear(128 + 128 + scalar_feature_size, 256), nn.ReLU(),
+            nn.Linear(256, 256), nn.ReLU(),
         )
         # gru coding here
 
         self.actors = nn.ModuleDict({
             UNIT_TYPE_NAME_WORKER: nn.Sequential(
-
+                # nn.Linear(512, 256), nn.ReLU(),
+                nn.Linear(256, 128), nn.ReLU(),
+                nn.Linear(128, 64), nn.ReLU(),
+                nn.Linear(64, WorkerAction.__members__.items().__len__()),  # logits
+                nn.Softmax(dim=1)
             ),
-
+            UNIT_TYPE_NAME_BASE: nn.Sequential(
+                nn.Linear(256,128), nn.ReLU(),
+                nn.Linear(128, 64), nn.ReLU(),
+                nn.Linear(64, BaseAction.__members__.items().__len__()),
+                nn.Softmax(dim=1),
+            )
 
         })
 
-        print(self.encoded_utt.size(0))
+    def forward(self, actor_type: str, base_out: torch.Tensor, unit_feature: np.ndarray, scalar_feature: np.ndarray):
+        encoded_utt = torch.from_numpy(encoded_utt_dict[actor_type]).float().unsqueeze(0)
+        encoded_unit = torch.from_numpy(unit_feature).float().unsqueeze(0)
 
-    def forward(self, base_out, unit_feature, scalar_feature):
-        return self.main(base_out)
+        x1 = self.base_out_layer(base_out)
+        x2 = self.utt_embedding_layer(torch.cat([encoded_utt, encoded_unit], dim=1))
+        x3 = torch.from_numpy(scalar_feature).float().unsqueeze(0)
+        x = torch.cat([x1, x2, x3], dim=1)
+        x = self.pre_gru_layer(x)
+
+        output = self.actors[actor_type](x)
+        return output
 
 
 def gradient_for_inner_connection_out_of_cnnbase_test():
@@ -154,4 +175,29 @@ def gradient_for_inner_connection_out_of_cnnbase_test():
 
 
 if __name__ == '__main__':
-    pass
+    import json
+    unit_entity_str = '{"type":"Worker", "ID":22, "player":0, "x":0, "y":2, "resources":0, "hitpoints":1}'
+    pgs_wrapper_str = '{"reward":140.0,"done":false,"validActions":[{"unit":{"type":"Worker", "ID":22, "player":0, "x":0, "y":2, "resources":0, "hitpoints":1},"unitActions":[{"type":1, "parameter":1} ,{"type":1, "parameter":2} ,{"type":0, "parameter":10}]},{"unit":{"type":"Worker", "ID":24, "player":0, "x":3, "y":4, "resources":0, "hitpoints":1},"unitActions":[{"type":1, "parameter":0} ,{"type":1, "parameter":1} ,{"type":1, "parameter":2} ,{"type":1, "parameter":3} ,{"type":0, "parameter":10}]}],"gs":{"time":164,"pgs":{"width":6,"height":6,"terrain":"000000000000000000000000000000000000","players":[{"ID":0, "resources":2},{"ID":1, "resources":5}],"units":[{"type":"Resource", "ID":0, "player":-1, "x":0, "y":0, "resources":230, "hitpoints":1},{"type":"Base", "ID":19, "player":1, "x":5, "y":5, "resources":0, "hitpoints":10},{"type":"Base", "ID":20, "player":0, "x":2, "y":2, "resources":0, "hitpoints":10},{"type":"Worker", "ID":22, "player":0, "x":0, "y":2, "resources":0, "hitpoints":1},{"type":"Worker", "ID":23, "player":0, "x":5, "y":2, "resources":0, "hitpoints":1},{"type":"Worker", "ID":24, "player":0, "x":3, "y":4, "resources":0, "hitpoints":1},{"type":"Worker", "ID":25, "player":0, "x":0, "y":1, "resources":0, "hitpoints":1},{"type":"Worker", "ID":26, "player":0, "x":2, "y":3, "resources":0, "hitpoints":1}]},"actions":[{"ID":20, "time":153, "action":{"type":4, "parameter":1, "unitType":"Worker"}},{"ID":26, "time":158, "action":{"type":1, "parameter":3}},{"ID":19, "time":160, "action":{"type":0, "parameter":10}},{"ID":25, "time":162, "action":{"type":2, "parameter":0}},{"ID":23, "time":163, "action":{"type":1, "parameter":2}}]}}'
+    unit = from_dict(data_class=Unit, data=json.loads(unit_entity_str))
+    gs_wrapper = from_dict(data_class=GsWrapper, data=json.loads(pgs_wrapper_str))
+
+    scalar_feature_actor = np.array([p.resources for p in gs_wrapper.gs.pgs.players])
+    rsrc1, rsrc2 = scalar_feature_actor
+    scalar_feature_critic = np.array([0.5 if rsrc1 == rsrc2 else (rsrc1-rsrc2) / (rsrc1+rsrc2)])
+    unit_feature = unit_feature_encoder(unit, gs_wrapper.gs.pgs.height, gs_wrapper.gs.pgs.width)
+
+    # print(scalar_feature)
+
+    cnnbase = CNNBase(6, 6, 19)
+    input_data = torch.randn(1, 19, 6, 6)
+
+    critic = Critic(cnnbase)
+
+    base_out = cnnbase(input_data, torch.from_numpy(scalar_feature_critic).unsqueeze(0).float())
+
+    actor = Actor(base_out.size(1))
+    print(actor("Worker", base_out, unit_feature, scalar_feature_actor))
+    # print(actor)
+    # print(actor(base_out,))
+    # actor = Actor()
+    # print(actor)
