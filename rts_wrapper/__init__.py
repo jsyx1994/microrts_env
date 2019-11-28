@@ -38,7 +38,7 @@ register(
     kwargs={'config': Config(
         ai1_type='socketAI',
         ai2_type='passive',
-        map_path='/home/toby/microrts_env/maps/6x6/baseTwoWorkersMaxResources6x6.xml',
+        map_path='maps/6x6/baseTwoWorkersMaxResources6x6.xml',
         height=6,
         width=6,
         render=True,
@@ -49,12 +49,28 @@ register(
 )
 
 register(
-    id='OneWorkerAndResources-v0',
+    id='TwoWorkersAndBaseWithResources-v0',
     entry_point='rts_wrapper.envs:MicroRts',
     kwargs={'config': Config(
         ai1_type='socketAI',
         ai2_type='passive',
-        map_path='/home/toby/microrts_env/maps/4x4/baseTwoWorkers4x4.xml',
+        map_path='maps/4x4/baseTwoWorkers4x4.xml',
+        height=4,
+        width=4,
+        render=True,
+        max_cycles=300,
+        max_episodes=10000,
+
+    )}
+)
+
+register(
+    id='OneWorkerAndBaseWithResources-v0',
+    entry_point='rts_wrapper.envs:MicroRts',
+    kwargs={'config': Config(
+        ai1_type='socketAI',
+        ai2_type='passive',
+        map_path='maps/4x4/base4x4.xml',
         height=4,
         width=4,
         render=True,

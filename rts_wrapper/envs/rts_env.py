@@ -9,7 +9,6 @@ import numpy as np
 from rts_wrapper.datatypes import *
 from threading import Thread
 
-action_collection = [BaseAction, BarracksAction, WorkerAction, LightAction, HeavyAction, RangedAction]
 
 
 class MicroRts(gym.Env):
@@ -23,13 +22,13 @@ class MicroRts(gym.Env):
         self.config = config
 
         self.random = rd
-        self.unit_action_map = {}
+        # self.unit_action_map = {}
         self.port = get_available_port()
         # self.encoded_utt_dict = utt_encoder(UTT_ORI)
         # print(self.encoded_utt_dict)
         # print(config.utt)
-        for action in action_collection:
-            self.unit_action_map[action.__type_name__] = action
+        # for action in action_collection:
+        #     self.unit_action_map[action.__type_name__] = action
 
         self.action_space = DictSpace({
             'Base': spaces.Discrete(BaseAction.__members__.items().__len__()),
@@ -99,7 +98,7 @@ class MicroRts(gym.Env):
     def signal_wrapper(self, raw):
         curr_player = int(raw.split('\n')[0].split()[1])
         gs_wrapper = from_dict(data_class=GsWrapper, data=json.loads(raw.split('\n')[1]))
-        print(raw)
+        # print(raw)
         observation = state_encoder(gs_wrapper.gs, curr_player)
         reward = gs_wrapper.reward
         done = gs_wrapper.done
@@ -110,7 +109,8 @@ class MicroRts(gym.Env):
             # "enemies_actions": None,
             "current_player": curr_player,
             "player_resources": [p.resources for p in gs_wrapper.gs.pgs.players],
-            "map_size": [gs_wrapper.gs.pgs.height, gs_wrapper.gs.pgs.width]
+            "map_size": [gs_wrapper.gs.pgs.height, gs_wrapper.gs.pgs.width],
+            "time_stamp": gs_wrapper.gs.time,
         }
         return observation, reward, done, info
 
@@ -120,9 +120,11 @@ class MicroRts(gym.Env):
         :return: choice for every unit, adding UVA to check validation later
         """
         unit_validaction_choices = []
-        if self.game_time % (self.config.frame_skip + 1) == 0:
+        if self.game_time % (self.config.frame_skip + 9) == 0:
             for uva in unit_valid_actions:
-                choice = self.random.choice(list(self.unit_action_map[uva.unit.type]))
+                choice = self.random.choice(list(AGENT_ACTIONS_MAP[uva.unit.type]))
+                if choice == -1:
+                    input()
                 # (choice) BaseAction.DO_NONE.name, BaseAction.DO_NONE.value
                 unit_validaction_choices.append((uva, choice))
                 if self.DEBUG:
@@ -149,7 +151,7 @@ class MicroRts(gym.Env):
     def reset(self):
         print("Server: Send reset command...")
         raw = self._send_msg('reset')
-        print(raw)
+        # print(raw)
         return self.signal_wrapper(raw)
 
     def render(self, mode='human'):
@@ -157,7 +159,7 @@ class MicroRts(gym.Env):
 
     def get_winner(self):
         """
-        this function must come after the done is true
+        this function must come after the done is true (i.e. game is over)
         -1: tie
         0: player 0
         1: player 1

@@ -29,6 +29,7 @@ UNIT_TYPE_NAME_RESOURCE = 'Resource'
 AGENT_COLLECTION = [UNIT_TYPE_NAME_BASE, UNIT_TYPE_NAME_BARRACKS, UNIT_TYPE_NAME_WORKER, UNIT_TYPE_NAME_LIGHT,
                     UNIT_TYPE_NAME_HEAVY, UNIT_TYPE_NAME_RANGED]
 
+
 # unit collection is used in the real state encoding
 UNIT_COLLECTION = AGENT_COLLECTION + ['Resource']
 
@@ -136,6 +137,13 @@ class RangedAction(Enum):
 
     DO_ATTACK_NEAREST = 4  # need java coding
     DO_ATTACK_WEAKEST = 5
+
+
+action_collection = [BaseAction, BarracksAction, WorkerAction, LightAction, HeavyAction, RangedAction]
+
+AGENT_ACTIONS_MAP = {}
+for action in action_collection:
+    AGENT_ACTIONS_MAP[action.__type_name__] = action
 
 
 @dataclass
@@ -270,4 +278,4 @@ for t in from_dict(data_class=UnitTypeTable, data=json.loads(UTT_ORI)).unitTypes
 # print(UTT_DICT)
 
 if __name__ == '__main__':
-    print(UNIT_COLLECTION)
+    print(list(LightAction))

@@ -275,6 +275,10 @@ def utt_encoder(utt_str: str):
 
 
 def network_action_translator(unit_validaction_choices) -> List[PlayerAction]:
+    """
+    :param unit_validaction_choices: tuple of ([unit with valid action list], [unitAction instance form datatypes])
+    :return:
+    """
     pas = []
     for uva, choice in unit_validaction_choices:
         unit = uva.unit
