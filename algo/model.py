@@ -39,7 +39,7 @@ class CNNBase(nn.Module):
             nn.Conv2d(in_channels=input_channel, out_channels=64, kernel_size=2), nn.ReLU(),
             nn.Conv2d(64, 128, 2), nn.ReLU(),
             nn.Conv2d(128, 64, 2), nn.ReLU(),
-            nn.AdaptiveMaxPool2d((map_height, map_width)),   # n * 64 * map_height * map_width
+            nn.AdaptiveMaxPool2d((map_height, map_width)),  # n * 64 * map_height * map_width
             # self-attention?
             Flatten()
         )
@@ -127,16 +127,16 @@ class Actor(nn.Module):
                 nn.Softmax(dim=1)
             ),
             UNIT_TYPE_NAME_BASE: nn.Sequential(
-                nn.Linear(256,128), nn.ReLU(),
+                nn.Linear(256, 128), nn.ReLU(),
                 nn.Linear(128, 64), nn.ReLU(),
                 nn.Linear(64, BaseAction.__members__.items().__len__()),
                 nn.Softmax(dim=1),
             )
 
-
         })
 
-    def deterministic_action_sampler(self, actor_type: str, base_out: torch.Tensor, unit_feature: torch.Tensor, scalar_feature: torch.Tensor):
+    def deterministic_action_sampler(self, actor_type: str, base_out: torch.Tensor, unit_feature: torch.Tensor,
+                                     scalar_feature: torch.Tensor):
         """
         :param actor_type:
         :param base_out:
@@ -151,7 +151,8 @@ class Actor(nn.Module):
         # print(prob)
         return list(AGENT_ACTIONS_MAP[actor_type])[torch.argmax(probs).item()]
 
-    def stochastic_action_sampler(self, actor_type: str, base_out: torch.Tensor, unit_feature: torch.Tensor, scalar_feature: torch.Tensor):
+    def stochastic_action_sampler(self, actor_type: str, base_out: torch.Tensor, unit_feature: torch.Tensor,
+                                  scalar_feature: torch.Tensor):
         if actor_type not in self.activated_agents:
             return AGENT_ACTIONS_MAP[actor_type].DO_NONE
 
@@ -161,9 +162,8 @@ class Actor(nn.Module):
         action = list(AGENT_ACTIONS_MAP[actor_type])[idx]
         return action
 
-
-
-    def forward(self, actor_type: str, base_out: torch.Tensor, unit_feature: torch.Tensor, scalar_feature: torch.Tensor):
+    def forward(self, actor_type: str, base_out: torch.Tensor, unit_feature: torch.Tensor,
+                scalar_feature: torch.Tensor):
         encoded_utt = torch.from_numpy(encoded_utt_dict[actor_type]).float().unsqueeze(0)
         # encoded_unit = torch.from_numpy(unit_feature).float().unsqueeze(0)
 
@@ -212,7 +212,7 @@ class ActorCritic(nn.Module):
         self.critic_out = nn.Linear(32, 1)
 
         self.actor_mlps = nn.Sequential(
-            nn.Linear(256 + unit_feature_size, 256), nn.ReLU(),
+            nn.Linear(self.shared_out_size + unit_feature_size + encoded_utt_feature_size, 256), nn.ReLU(),
             nn.Linear(256, 256), nn.ReLU(),
         )
 
@@ -225,7 +225,7 @@ class ActorCritic(nn.Module):
                 nn.Softmax(dim=1)
             ),
             UNIT_TYPE_NAME_BASE: nn.Sequential(
-                nn.Linear(256,128), nn.ReLU(),
+                nn.Linear(256, 128), nn.ReLU(),
                 nn.Linear(128, 64), nn.ReLU(),
                 nn.Linear(64, BaseAction.__members__.items().__len__()),
                 nn.Softmax(dim=1),
@@ -244,15 +244,15 @@ class ActorCritic(nn.Module):
         x = self.critic_out(x)
         return x
 
-    def _actor_forward(self, actor_type: str, spatial_feature: Tensor,scalar_feature:Tensor, unit_feature: Tensor):
+    def _actor_forward(self, actor_type: str, spatial_feature: Tensor, scalar_feature: Tensor, unit_feature: Tensor):
         encoded_utt = torch.from_numpy(encoded_utt_dict[actor_type]).float().unsqueeze(0)
         x = self._shared_forward(spatial_feature, scalar_feature)
-        x = torch.cat([x, encoded_utt, unit_feature])
+        x = torch.cat([x, encoded_utt, unit_feature],dim=1)
         x = self.actor_mlps(x)
         probs = self.actor_out[actor_type](x)
         return probs
 
-    def deterministic_action_sampler(self, actor_type: str, unit_feature: Tensor, scalar_feature: Tensor):
+    def deterministic_action_sampler(self, actor_type: str, spatial_feature: Tensor, unit_feature: Tensor):
         """
         :param actor_type:
         :param base_out:
@@ -263,16 +263,15 @@ class ActorCritic(nn.Module):
         if actor_type not in self.activated_agents:
             return AGENT_ACTIONS_MAP[actor_type].DO_NONE
 
-        probs = self.forward(actor_type, unit_feature, scalar_feature)
+        probs = self._actor_forward(actor_type, spatial_feature, unit_feature)
         # print(prob)
         return list(AGENT_ACTIONS_MAP[actor_type])[torch.argmax(probs).item()]
 
-
-    def stochastic_action_sampler(self, actor_type: str, spatial_feature: Tensor, unit_feature: Tensor):
+    def stochastic_action_sampler(self, actor_type: str, spatial_feature: Tensor, scalar_feature: Tensor, unit_feature: Tensor):
         if actor_type not in self.activated_agents:
             return AGENT_ACTIONS_MAP[actor_type].DO_NONE
 
-        probs = self._actor_forward(actor_type, spatial_feature, unit_feature)
+        probs = self._actor_forward(actor_type, spatial_feature, scalar_feature, unit_feature)
         # probs = self.forward(actor_type, unit_feature, scalar_feature)
         m = Categorical(probs)
         idx = m.sample().item()
@@ -309,6 +308,7 @@ def gradient_for_inner_connection_out_of_cnnbase_test():
     print(critic(input_data)[0])
     print(actor(cnnout))
 
+
 def test_network():
     import json
     unit_entity_str = '{"type":"Worker", "ID":22, "player":0, "x":0, "y":2, "resources":0, "hitpoints":1}'
@@ -340,16 +340,18 @@ def test_network():
 
 if __name__ == '__main__':
     import json
+
     unit_entity_str = '{"type":"Worker", "ID":22, "player":0, "x":0, "y":2, "resources":0, "hitpoints":1}'
     pgs_wrapper_str = '{"reward":140.0,"done":false,"validActions":[{"unit":{"type":"Worker", "ID":22, "player":0, "x":0, "y":2, "resources":0, "hitpoints":1},"unitActions":[{"type":1, "parameter":1} ,{"type":1, "parameter":2} ,{"type":0, "parameter":10}]},{"unit":{"type":"Worker", "ID":24, "player":0, "x":3, "y":4, "resources":0, "hitpoints":1},"unitActions":[{"type":1, "parameter":0} ,{"type":1, "parameter":1} ,{"type":1, "parameter":2} ,{"type":1, "parameter":3} ,{"type":0, "parameter":10}]}],"gs":{"time":164,"pgs":{"width":6,"height":6,"terrain":"000000000000000000000000000000000000","players":[{"ID":0, "resources":2},{"ID":1, "resources":5}],"units":[{"type":"Resource", "ID":0, "player":-1, "x":0, "y":0, "resources":230, "hitpoints":1},{"type":"Base", "ID":19, "player":1, "x":5, "y":5, "resources":0, "hitpoints":10},{"type":"Base", "ID":20, "player":0, "x":2, "y":2, "resources":0, "hitpoints":10},{"type":"Worker", "ID":22, "player":0, "x":0, "y":2, "resources":0, "hitpoints":1},{"type":"Worker", "ID":23, "player":0, "x":5, "y":2, "resources":0, "hitpoints":1},{"type":"Worker", "ID":24, "player":0, "x":3, "y":4, "resources":0, "hitpoints":1},{"type":"Worker", "ID":25, "player":0, "x":0, "y":1, "resources":0, "hitpoints":1},{"type":"Worker", "ID":26, "player":0, "x":2, "y":3, "resources":0, "hitpoints":1}]},"actions":[{"ID":20, "time":153, "action":{"type":4, "parameter":1, "unitType":"Worker"}},{"ID":26, "time":158, "action":{"type":1, "parameter":3}},{"ID":19, "time":160, "action":{"type":0, "parameter":10}},{"ID":25, "time":162, "action":{"type":2, "parameter":0}},{"ID":23, "time":163, "action":{"type":1, "parameter":2}}]}}'
     unit = from_dict(data_class=Unit, data=json.loads(unit_entity_str))
     gs_wrapper = from_dict(data_class=GsWrapper, data=json.loads(pgs_wrapper_str))
 
-    scalar_feature_actor = np.array([p.resources for p in gs_wrapper.gs.pgs.players])
-    rsrc1, rsrc2 = scalar_feature_actor
-    scalar_feature_critic = np.array([0.5 if rsrc1 == rsrc2 else (rsrc1 - rsrc2) / (rsrc1 + rsrc2)])
-    unit_feature = unit_feature_encoder(unit, gs_wrapper.gs.pgs.height, gs_wrapper.gs.pgs.width)
+    scalar_feature = torch.randn(1,2)
+    # rsrc1, rsrc2 = scalar_feature_actor
+    # scalar_feature_critic = np.array([0.5 if rsrc1 == rsrc2 else (rsrc1 - rsrc2) / (rsrc1 + rsrc2)])
+    unit_feature = torch.from_numpy(unit_feature_encoder(unit, gs_wrapper.gs.pgs.height, gs_wrapper.gs.pgs.width)).float().unsqueeze(0)
     input_data = torch.randn(1, 19, 6, 6)
 
-    a = ActorCritic(4, 4)
-    print(a.evaluate(input_data, torch.from_numpy(scalar_feature_actor).float().unsqueeze(0)))
+    model = ActorCritic(4, 4)
+    print(model.evaluate(input_data, scalar_feature))  # critic test
+    print(model.stochastic_action_sampler(unit.type, input_data, scalar_feature, unit_feature))
