@@ -31,63 +31,6 @@ def pa_to_jsonable(pas: List[PlayerAction]) -> str:
     # json.dumps(ans)
     return json.dumps(ans)
 
-# def state_encoder(gs: GameState, player):
-#     current_player = player
-#
-#     # Used for type indexing
-#     utt = ['Base', 'Barracks', 'Worker', 'Light', 'Heavy', 'Ranged']
-#     type_idx = {}
-#     for i, ut in zip(range(len(utt)), utt):
-#         type_idx[ut] = i
-#
-#     time = gs.time
-#     pgs = gs.pgs
-#     actions = gs.actions
-#     w = pgs.width
-#     h = pgs.height
-#     units = pgs.units
-#
-#     # Initialization of spatial features
-#     spatial_features = np.zeros((18, h, w))
-#
-#     # channel_wall
-#     spatial_features[0] = np.array([int(x) for x in pgs.terrain]).reshape((1, h, w))
-#
-#     # other channels
-#     channel_resource = spatial_features[1]2
-#     channel_self_type = spatial_features[2:8]
-#     channel_self_hp = spatial_features[8]
-#     channel_self_resource_carried = spatial_features[9]
-#     channel_enemy_type = spatial_features[10:16]
-#     channel_enemy_hp = spatial_features[16]
-#     channel_enemy_resource_carried = spatial_features[17]
-#
-#     for unit in units:
-#         _player = unit.player
-#         _type = unit.type
-#         x = unit.x
-#         y = unit.y
-#         # neutral
-#         if _player == -1:
-#             channel_resource[x][y] = unit.resources
-#             # channel_resource[x][y] = 1
-#
-#         elif _player == current_player:
-#             # get the index of this type
-#             idx = type_idx[_type]
-#             channel_self_type[idx][x][y] = 1
-#             channel_self_hp[x][y] = unit.hitpoints
-#             channel_self_resource_carried[x][y] = unit.resources
-#
-#         else:
-#             idx = type_idx[_type]
-#             channel_enemy_type[idx][x][y] = 1
-#             channel_enemy_hp[x][y] = unit.hitpoints
-#             channel_enemy_resource_carried[x][y] = unit.resources
-#     # print(spatial_features)
-#     # print(spatial_features.shape)
-#     return spatial_features
-
 
 def state_encoder(gs: GameState, player):
     current_player = player
@@ -96,6 +39,9 @@ def state_encoder(gs: GameState, player):
     w = pgs.width
     h = pgs.height
     units = pgs.units
+    p1_info, p2_info = gs.pgs.players
+    my_resources  = p1_info.resources if current_player == p1_info.ID else p2_info.resources
+    opp_resources = p2_info.resources if current_player == p1_info.ID else p1_info.resources
 
     channel_terrain = np.array([int(x) for x in pgs.terrain]).reshape((1, h, w))
     channel_type = np.zeros((len(UNIT_COLLECTION), h, w))
@@ -103,6 +49,10 @@ def state_encoder(gs: GameState, player):
     channel_resource = np.zeros((8, h, w))
 
     channel_is_ally = np.zeros((2, h, w))
+
+    channel_my_resources = np.full((1, h, w), fill_value=my_resources)
+    channel_opp_resources = np.full((1, h, w), fill_value=opp_resources)
+
 
     for unit in units:
         _owner = unit.player
@@ -126,7 +76,10 @@ def state_encoder(gs: GameState, player):
             channel_type,
             channel_resource,
             channel_hp_ratio,
-            channel_terrain
+            channel_terrain,
+
+            channel_my_resources,
+            channel_opp_resources
         ),
     )
     return spatial_features

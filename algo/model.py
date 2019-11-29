@@ -178,7 +178,7 @@ class Actor(nn.Module):
 
 
 class ActorCritic(nn.Module):
-    def __init__(self, map_height, map_width, input_channel=19, scalar_feature_size=2, unit_feature_size=18):
+    def __init__(self, map_height, map_width, input_channel=21, unit_feature_size=18):
         super(ActorCritic, self).__init__()
         self.shared_out_size = 256
         self.activated_agents = [
@@ -200,7 +200,7 @@ class ActorCritic(nn.Module):
         )
 
         self.shared_linear = nn.Sequential(
-            nn.Linear(64 * map_height * map_width + scalar_feature_size, 512), nn.ReLU(),
+            nn.Linear(64 * map_height * map_width, 512), nn.ReLU(),
             nn.Linear(512, self.shared_out_size), nn.ReLU(),
         )
 
@@ -232,47 +232,45 @@ class ActorCritic(nn.Module):
             )
         })
 
-    def _shared_forward(self, spatial_feature, scalar_feature):
+    def _shared_forward(self, spatial_feature):
         x = self.shared_conv(spatial_feature)
-        x = torch.cat([x, scalar_feature], dim=1)
         x = self.shared_linear(x)
         return x
 
-    def evaluate(self, spatial_feature: Tensor, scalar_feature: Tensor):
-        x = self._shared_forward(spatial_feature, scalar_feature)
+    def evaluate(self, spatial_feature: Tensor):
+        self.eval()
+        x = self._shared_forward(spatial_feature)
         x = self.critic_mlps(x)
         x = self.critic_out(x)
         return x
 
-    def _actor_forward(self, actor_type: str, spatial_feature: Tensor, scalar_feature: Tensor, unit_feature: Tensor):
+    def critic_forward(self, spatial_feature: Tensor):
+        x = self._shared_forward(spatial_feature)
+        x = self.critic_mlps(x)
+        x = self.critic_out(x)
+        return x
+
+    def actor_forward(self, actor_type: str, spatial_feature: Tensor, unit_feature: Tensor):
         encoded_utt = torch.from_numpy(encoded_utt_dict[actor_type]).float().unsqueeze(0)
-        x = self._shared_forward(spatial_feature, scalar_feature)
-        x = torch.cat([x, encoded_utt, unit_feature],dim=1)
+        x = self._shared_forward(spatial_feature)
+        x = torch.cat([x, encoded_utt, unit_feature], dim=1)
         x = self.actor_mlps(x)
         probs = self.actor_out[actor_type](x)
         return probs
 
     def deterministic_action_sampler(self, actor_type: str, spatial_feature: Tensor, unit_feature: Tensor):
-        """
-        :param actor_type:
-        :param base_out:
-        :param unit_feature:
-        :param scalar_feature:
-        :return: Unit action type from datatypes
-        """
         if actor_type not in self.activated_agents:
             return AGENT_ACTIONS_MAP[actor_type].DO_NONE
 
-        probs = self._actor_forward(actor_type, spatial_feature, unit_feature)
+        probs = self.actor_forward(actor_type, spatial_feature, unit_feature)
         # print(prob)
         return list(AGENT_ACTIONS_MAP[actor_type])[torch.argmax(probs).item()]
 
-    def stochastic_action_sampler(self, actor_type: str, spatial_feature: Tensor, scalar_feature: Tensor, unit_feature: Tensor):
+    def stochastic_action_sampler(self, actor_type: str, spatial_feature: Tensor, unit_feature: Tensor):
         if actor_type not in self.activated_agents:
             return AGENT_ACTIONS_MAP[actor_type].DO_NONE
 
-        probs = self._actor_forward(actor_type, spatial_feature, scalar_feature, unit_feature)
-        # probs = self.forward(actor_type, unit_feature, scalar_feature)
+        probs = self.actor_forward(actor_type, spatial_feature, unit_feature)
         m = Categorical(probs)
         idx = m.sample().item()
         action = list(AGENT_ACTIONS_MAP[actor_type])[idx]
@@ -350,8 +348,8 @@ if __name__ == '__main__':
     # rsrc1, rsrc2 = scalar_feature_actor
     # scalar_feature_critic = np.array([0.5 if rsrc1 == rsrc2 else (rsrc1 - rsrc2) / (rsrc1 + rsrc2)])
     unit_feature = torch.from_numpy(unit_feature_encoder(unit, gs_wrapper.gs.pgs.height, gs_wrapper.gs.pgs.width)).float().unsqueeze(0)
-    input_data = torch.randn(1, 19, 6, 6)
+    input_data = torch.randn(1, 21, 6, 6)
 
     model = ActorCritic(4, 4)
-    print(model.evaluate(input_data, scalar_feature))  # critic test
-    print(model.stochastic_action_sampler(unit.type, input_data, scalar_feature, unit_feature))
+    print(model.evaluate(input_data))  # critic test
+    print(model.stochastic_action_sampler(unit.type, input_data, unit_feature))
