@@ -87,12 +87,17 @@ class BarracksAction(Enum):
     DO_LAY_HEAVY = 2
     DO_LAY_RANGED = 3
 
+    @staticmethod
+    def get_index(action):
+        return list(BarracksAction).index(action)
+
 
 class WorkerAction(Enum):
     __type_name__ = UNIT_TYPE_NAME_WORKER
 
     DO_NONE = -1
 
+    # 0, 1, 2, 3 must agree with up, right, down, left
     # need to convert to valid actions using unit_valid_action according to the specific condition.
     # example:DO_UP_PROBE: walk up when no obstacles, but attack when enemy
     DO_UP_PROBE = 0
@@ -268,11 +273,18 @@ class PlayerAction:
     unitAction: Optional[UnitAction] = UnitAction()
 
 
+# for sl
+@dataclass
+class UUA:
+    unit: Unit
+    unitAction: UnitAction
+
+
 @dataclass
 class Record:
     gs: GameState
     player: int
-    actions: List[(Unit, UnitAction)]
+    actions: List[UUA]
 
 
 @dataclass
@@ -289,4 +301,4 @@ for t in from_dict(data_class=UnitTypeTable, data=json.loads(UTT_ORI)).unitTypes
 # print(UTT_DICT)
 
 if __name__ == '__main__':
-    print(list(LightAction))
+    print(list(LightAction.DO_NONE.__class__))

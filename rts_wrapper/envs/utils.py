@@ -24,6 +24,10 @@ def normalize(value, max_v, min_v):
     return 1 if max_v == min_v else (value - min_v) / (max_v - min_v)
 
 
+def get_action_index(enum_action):
+    return list(enum_action.__class__).index(enum_action)
+
+
 def pa_to_jsonable(pas: List[PlayerAction]) -> str:
     ans = []
     for pa in pas:
@@ -229,6 +233,7 @@ def utt_encoder(utt_str: str):
 
 def network_action_translator(unit_validaction_choices) -> List[PlayerAction]:
     """
+    translate network actions to ones game readable
     :param unit_validaction_choices: tuple of ([unit with valid action list], [unitAction instance form datatypes])
     :return:
     """
@@ -360,6 +365,73 @@ def network_action_translator(unit_validaction_choices) -> List[PlayerAction]:
     return pas
 
 
+def game_action_translator(rcd: Record):
+    """
+    translate the game actions to ones network readable
+    :return: network action
+    """
+    def attack_trans(x, y, _x, _y):
+        for i in range(4):
+            if (x + DIRECTION_OFFSET_X[i] == _x) and (y + DIRECTION_OFFSET_Y[i] == _y):
+                return i
+
+    def ua2int(u: Unit, ua: UnitAction) -> int:
+        # base
+        if   u.type == UNIT_TYPE_NAME_BASE:
+
+            if   ua.type == ACTION_TYPE_NONE:
+                return get_action_index(BaseAction.DO_NONE)
+
+            elif ua.type == ACTION_TYPE_PRODUCE:
+                return get_action_index(BaseAction.DO_LAY_WORKER)
+
+        # barracks
+        elif u.type == UNIT_TYPE_NAME_BARRACKS:
+
+            if   ua.type == ACTION_TYPE_NONE:
+                return get_action_index(BarracksAction.DO_NONE)
+
+            elif ua.type == ACTION_TYPE_PRODUCE:
+                if   ua.unitType == UNIT_TYPE_NAME_LIGHT:
+                    return get_action_index(BarracksAction.DO_LAY_LIGHT)
+                elif ua.unitType == UNIT_TYPE_NAME_HEAVY:
+                    return get_action_index(BarracksAction.DO_LAY_HEAVY)
+                elif ua.unitType == UNIT_TYPE_NAME_RANGED:
+                    return get_action_index(BarracksAction.DO_LAY_RANGED)
+
+        # worker
+        elif u.type == UNIT_TYPE_NAME_WORKER:
+
+            if   ua.type == ACTION_TYPE_NONE:
+                return get_action_index(WorkerAction.DO_NONE)
+
+            elif ua.type in (ACTION_TYPE_MOVE, ACTION_TYPE_HARVEST, ACTION_TYPE_RETURN):
+                return ua.parameter
+
+            elif ua.type == ACTION_TYPE_ATTACK_LOCATION:
+                return attack_trans(u.x, u.y, ua.x, ua.y)
+
+            elif ua.type == ACTION_TYPE_PRODUCE:
+                if ua.unitType == UNIT_TYPE_NAME_BASE:
+                    return get_action_index(WorkerAction.DO_LAY_BASE)
+                elif ua.unitType == UNIT_TYPE_NAME_BARRACKS:
+                    return get_action_index(WorkerAction.DO_LAY_BARRACKS)
+
+        # light
+        elif u.type == UNIT_TYPE_NAME_LIGHT:
+
+            pass
+
+        # heavy
+        elif u.type == UNIT_TYPE_NAME_HEAVY:
+            pass
+
+        # ranged
+        elif u.type == UNIT_TYPE_NAME_RANGED:
+            pass
+    pass
+
+
 def resource_encoder(amount, feature_length=8, amount_threshold=2):
     resource = np.zeros(8)
     if amount == 0:
@@ -429,4 +501,5 @@ def test_resource_encoder():
 
 
 if __name__ == '__main__':
-    test_resource_encoder()
+    print(get_action_index(LightAction.DO_NONE))
+    # test_resource_encoder()

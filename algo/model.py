@@ -178,9 +178,11 @@ class Actor(nn.Module):
 
 
 class ActorCritic(nn.Module):
+
     def __init__(self, map_height, map_width, input_channel=21, unit_feature_size=18):
         super(ActorCritic, self).__init__()
         self.shared_out_size = 256
+
         self.activated_agents = [
             # UNIT_TYPE_NAME_BASE,
             # UNIT_TYPE_NAME_BARRACKS,
