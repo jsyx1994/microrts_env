@@ -268,6 +268,17 @@ class PlayerAction:
     unitAction: Optional[UnitAction] = UnitAction()
 
 
+@dataclass
+class Record:
+    gs: GameState
+    player: int
+    actions: List[(Unit, UnitAction)]
+
+
+@dataclass
+class Records:
+    records: List[Record]
+
 from dacite import from_dict
 import json
 
