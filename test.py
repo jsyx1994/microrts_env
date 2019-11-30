@@ -7,8 +7,8 @@ import torch
 from algo.replay_buffer import ReplayBuffer
 
 # env = gym.make("Microrts-v0")
-# env = gym.make("CurriculumBaseWorker-v0")
-env = gym.make("OneWorkerAndBaseWithResources-v0")
+env = gym.make("CurriculumBaseWorker-v0")
+# env = gym.make("OneWorkerAndBaseWithResources-v0")
 
 # env.action_space.sample()
 
@@ -79,20 +79,18 @@ def action_sampler_v1(model:ActorCritic, state, info):
     return network_action_translator(samples)
 
 
-
-
 replay_buffer = ReplayBuffer(100)
 for _ in range(env.config.max_episodes):
-    state_t, _, done, info_t = env.reset()  # deserting the reward
+    obs_t, _, done, info_t = env.reset()  # deserting the reward
     while not done:
         # action = env.sample(info["unit_valid_actions"])
-        # action = env.network_simulate(info["unit_valid_actions"])
+        action = env.network_simulate(info_t["unit_valid_actions"])
         # action = action_sampler_v0(actor, critic, state_t, info_t)
-        action = action_sampler_v1(model, state_t, info_t)
-        print(action)
+        # action = action_sampler_v1(model, obs_t, info_t)
+        # print(action)
         state_tp1, reward, done, info_tp1 = env.step(action)
 
-        state_t, info_t = state_tp1, info_tp1   # assign new state and info from environment
+        obs_t, info_t = state_tp1, info_tp1   # assign new state and info from environment
         # replay_buffer.push(state_t,info_t,ac)
 
     winner = env.get_winner()  # required

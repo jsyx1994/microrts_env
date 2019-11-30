@@ -98,7 +98,8 @@ class MicroRts(gym.Env):
     def signal_wrapper(self, raw):
         curr_player = int(raw.split('\n')[0].split()[1])
         gs_wrapper = from_dict(data_class=GsWrapper, data=json.loads(raw.split('\n')[1]))
-        # print(raw)
+        print(raw)
+        input()
         observation = state_encoder(gs_wrapper.gs, curr_player)
         reward = gs_wrapper.reward
         done = gs_wrapper.done
@@ -120,11 +121,12 @@ class MicroRts(gym.Env):
         :return: choice for every unit, adding UVA to check validation later
         """
         unit_validaction_choices = []
-        if self.game_time % (self.config.frame_skip + 9) == 0:
+        if self.game_time % (self.config.frame_skip + 1) == 0:
             for uva in unit_valid_actions:
+                # if uva.unit.type == "Worker":
+                #     choice = WorkerAction.DO_LAY_BARRACKS
+                # else:
                 choice = self.random.choice(list(AGENT_ACTIONS_MAP[uva.unit.type]))
-                if choice == -1:
-                    input()
                 # (choice) BaseAction.DO_NONE.name, BaseAction.DO_NONE.value
                 unit_validaction_choices.append((uva, choice))
                 if self.DEBUG:

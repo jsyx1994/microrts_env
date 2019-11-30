@@ -215,10 +215,26 @@ class Pgs:
 
 
 @dataclass
+class UnitAction:
+    type: Optional[int] = ACTION_TYPE_NONE
+    parameter: Optional[int] = ACTION_PARAMETER_DIRECTION_NONE
+    unitType: Optional[str] = ""
+    x: Optional[int] = -1
+    y: Optional[int] = -1
+
+
+@dataclass
+class AssignedAction:
+    ID: int
+    action: UnitAction
+    time: Optional[int] = 0
+
+
+@dataclass
 class GameState:
     time: int
     pgs: Pgs
-    actions: List[Any]
+    actions: List[AssignedAction]
 
 
 @dataclass
@@ -226,6 +242,8 @@ class Config:
     ai1_type: str
     ai2_type: str
     map_path: str
+    height: int
+    width: int
     self_play: Optional[bool] = False
     max_cycles: Optional[int] = 5000
     max_episodes: Optional[int] = 10000
@@ -237,20 +255,11 @@ class Config:
     microrts_path: Optional[str] = "~/microrts_env"
     microrts_repo_path: Optional[str] = ""
     client_ip: Optional[str] = "127.0.0.1"
-    height: Optional[int] = 0
-    width: Optional[int] = 0
+
     window_size: Optional[int] = 1
     evaluation_filename: Optional[str] = ""
     frame_skip: Optional[int] = 0
 
-
-@dataclass
-class UnitAction:
-    type: Optional[int] = ACTION_TYPE_NONE
-    parameter: Optional[int] = ACTION_PARAMETER_DIRECTION_NONE
-    unitType: Optional[str] = ""
-    x: Optional[int] = -1
-    y: Optional[int] = -1
 
 
 @dataclass

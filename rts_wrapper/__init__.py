@@ -26,6 +26,8 @@ register(
         ai2_type='passive',
         map_path='maps/16x16/basesWorkers16x16.xml',
         render=True,
+        height=16,
+        width=16,
         max_cycles=2000,
         max_episodes=2,
         # auto_port=True,

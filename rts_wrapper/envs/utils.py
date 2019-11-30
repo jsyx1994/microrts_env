@@ -36,6 +36,19 @@ def pa_to_jsonable(pas: List[PlayerAction]) -> str:
     return json.dumps(ans)
 
 
+def fix_keys(odict):
+    """
+    only used to fix keys form xml files
+    :param odict:
+    :return:
+    """
+    keys = [k for k in odict]
+    for key in keys:
+        odict[key.split('@')[-1]] = odict.pop(key)
+    # print(dic)
+    return odict
+
+
 def state_encoder(gs: GameState, player):
     current_player = player
     # AGENT_COLLECTION
@@ -365,6 +378,7 @@ def network_action_translator(unit_validaction_choices) -> List[PlayerAction]:
     return pas
 
 
+# TODO: test the following
 def game_action_translator(rcd: Record):
     """
     translate the game actions to ones network readable
@@ -419,12 +433,21 @@ def game_action_translator(rcd: Record):
 
         # light
         elif u.type == UNIT_TYPE_NAME_LIGHT:
-
-            pass
+            if ua.type == ACTION_TYPE_NONE:
+                return get_action_index(LightAction.DO_NONE)
+            elif ua.type in (ACTION_TYPE_MOVE, ACTION_TYPE_HARVEST, ACTION_TYPE_RETURN):
+                return ua.parameter
+            elif ua.type == ACTION_TYPE_ATTACK_LOCATION:
+                return attack_trans(u.x, u.y, ua.x, ua.y)
 
         # heavy
         elif u.type == UNIT_TYPE_NAME_HEAVY:
-            pass
+            if ua.type == ACTION_TYPE_NONE:
+                return get_action_index(HeavyAction.DO_NONE)
+            elif ua.type in (ACTION_TYPE_MOVE, ACTION_TYPE_HARVEST, ACTION_TYPE_RETURN):
+                return ua.parameter
+            elif ua.type == ACTION_TYPE_ATTACK_LOCATION:
+                return attack_trans(u.x, u.y, ua.x, ua.y)
 
         # ranged
         elif u.type == UNIT_TYPE_NAME_RANGED:
