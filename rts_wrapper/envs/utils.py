@@ -7,6 +7,7 @@ from typing import List, Any
 from rts_wrapper.datatypes import *
 import json
 import numpy as np
+import time
 
 rd = np.random
 rd.seed()
@@ -36,17 +37,39 @@ def pa_to_jsonable(pas: List[PlayerAction]) -> str:
     return json.dumps(ans)
 
 
-def fix_keys(odict):
+def extract_record(gs: GameState, sl_target: int) -> Record:
     """
-    only used to fix keys form xml files
-    :param odict:
-    :return:
+    get the target players' (state - actions) pair
+    :param gs:
+    :param sl_target:
+    :return:Record
     """
-    keys = [k for k in odict]
-    for key in keys:
-        odict[key.split('@')[-1]] = odict.pop(key)
-    # print(dic)
-    return odict
+    # st = time.time()
+    assert sl_target in [0, 1], "target player must be No.0 or No.1!"
+    units = gs.pgs.units
+    actions = gs.actions
+    id_unit_map = {}
+    for u in units:
+        id_unit_map[u.ID] = u
+
+    t_unit = list(filter(lambda x: x.player == sl_target, units))
+    t_unit_id = [u.ID for u in t_unit]
+    
+    # print(t_unit)
+    t_uaa = [(id_unit_map[a.ID], a.action) for a in actions if a.ID in t_unit_id]
+    # print(t_uaa)
+    uaas = []
+    for x in t_uaa:
+        y = UAA(unit=x[0], unitAction=x[1])
+        uaas.append(y)
+
+    rcd = Record(
+        gs=gs,
+        player=sl_target,
+        actions=uaas
+    )
+    # print(time.time() - st)
+    return rcd
 
 
 def state_encoder(gs: GameState, player):
@@ -69,7 +92,6 @@ def state_encoder(gs: GameState, player):
 
     channel_my_resources = np.full((1, h, w), fill_value=my_resources)
     channel_opp_resources = np.full((1, h, w), fill_value=opp_resources)
-
 
     for unit in units:
         _owner = unit.player
@@ -379,7 +401,7 @@ def network_action_translator(unit_validaction_choices) -> List[PlayerAction]:
 
 
 # TODO: test the following
-def game_action_translator(rcd: Record):
+def game_action_translator(u: Unit, ua: UnitAction):
     """
     translate the game actions to ones network readable
     :return: network action
@@ -389,70 +411,70 @@ def game_action_translator(rcd: Record):
             if (x + DIRECTION_OFFSET_X[i] == _x) and (y + DIRECTION_OFFSET_Y[i] == _y):
                 return i
 
-    def ua2int(u: Unit, ua: UnitAction) -> int:
-        # base
-        if   u.type == UNIT_TYPE_NAME_BASE:
 
-            if   ua.type == ACTION_TYPE_NONE:
-                return get_action_index(BaseAction.DO_NONE)
+    if   u.type == UNIT_TYPE_NAME_BASE:
 
-            elif ua.type == ACTION_TYPE_PRODUCE:
-                return get_action_index(BaseAction.DO_LAY_WORKER)
+        if   ua.type == ACTION_TYPE_NONE:
+            return get_action_index(BaseAction.DO_NONE)
 
-        # barracks
-        elif u.type == UNIT_TYPE_NAME_BARRACKS:
+        elif ua.type == ACTION_TYPE_PRODUCE:
+            return get_action_index(BaseAction.DO_LAY_WORKER)
 
-            if   ua.type == ACTION_TYPE_NONE:
-                return get_action_index(BarracksAction.DO_NONE)
+    # barracks
+    elif u.type == UNIT_TYPE_NAME_BARRACKS:
 
-            elif ua.type == ACTION_TYPE_PRODUCE:
-                if   ua.unitType == UNIT_TYPE_NAME_LIGHT:
-                    return get_action_index(BarracksAction.DO_LAY_LIGHT)
-                elif ua.unitType == UNIT_TYPE_NAME_HEAVY:
-                    return get_action_index(BarracksAction.DO_LAY_HEAVY)
-                elif ua.unitType == UNIT_TYPE_NAME_RANGED:
-                    return get_action_index(BarracksAction.DO_LAY_RANGED)
+        if   ua.type == ACTION_TYPE_NONE:
+            return get_action_index(BarracksAction.DO_NONE)
 
-        # worker
-        elif u.type == UNIT_TYPE_NAME_WORKER:
+        elif ua.type == ACTION_TYPE_PRODUCE:
+            if   ua.unitType == UNIT_TYPE_NAME_LIGHT:
+                return get_action_index(BarracksAction.DO_LAY_LIGHT)
+            elif ua.unitType == UNIT_TYPE_NAME_HEAVY:
+                return get_action_index(BarracksAction.DO_LAY_HEAVY)
+            elif ua.unitType == UNIT_TYPE_NAME_RANGED:
+                return get_action_index(BarracksAction.DO_LAY_RANGED)
 
-            if   ua.type == ACTION_TYPE_NONE:
-                return get_action_index(WorkerAction.DO_NONE)
+    # worker
+    elif u.type == UNIT_TYPE_NAME_WORKER:
 
-            elif ua.type in (ACTION_TYPE_MOVE, ACTION_TYPE_HARVEST, ACTION_TYPE_RETURN):
-                return ua.parameter
+        if   ua.type == ACTION_TYPE_NONE:
+            return get_action_index(WorkerAction.DO_NONE)
 
-            elif ua.type == ACTION_TYPE_ATTACK_LOCATION:
-                return attack_trans(u.x, u.y, ua.x, ua.y)
+        elif ua.type in (ACTION_TYPE_MOVE, ACTION_TYPE_HARVEST, ACTION_TYPE_RETURN):
+            return get_action_index(WorkerAction(ua.parameter))
 
-            elif ua.type == ACTION_TYPE_PRODUCE:
-                if ua.unitType == UNIT_TYPE_NAME_BASE:
-                    return get_action_index(WorkerAction.DO_LAY_BASE)
-                elif ua.unitType == UNIT_TYPE_NAME_BARRACKS:
-                    return get_action_index(WorkerAction.DO_LAY_BARRACKS)
+        elif ua.type == ACTION_TYPE_ATTACK_LOCATION:
+            return get_action_index(WorkerAction(attack_trans(u.x, u.y, ua.x, ua.y)))
 
-        # light
-        elif u.type == UNIT_TYPE_NAME_LIGHT:
-            if ua.type == ACTION_TYPE_NONE:
-                return get_action_index(LightAction.DO_NONE)
-            elif ua.type in (ACTION_TYPE_MOVE, ACTION_TYPE_HARVEST, ACTION_TYPE_RETURN):
-                return ua.parameter
-            elif ua.type == ACTION_TYPE_ATTACK_LOCATION:
-                return attack_trans(u.x, u.y, ua.x, ua.y)
+        elif ua.type == ACTION_TYPE_PRODUCE:
+            if ua.unitType == UNIT_TYPE_NAME_BASE:
+                return get_action_index(WorkerAction.DO_LAY_BASE)
+            elif ua.unitType == UNIT_TYPE_NAME_BARRACKS:
+                return get_action_index(WorkerAction.DO_LAY_BARRACKS)
 
-        # heavy
-        elif u.type == UNIT_TYPE_NAME_HEAVY:
-            if ua.type == ACTION_TYPE_NONE:
-                return get_action_index(HeavyAction.DO_NONE)
-            elif ua.type in (ACTION_TYPE_MOVE, ACTION_TYPE_HARVEST, ACTION_TYPE_RETURN):
-                return ua.parameter
-            elif ua.type == ACTION_TYPE_ATTACK_LOCATION:
-                return attack_trans(u.x, u.y, ua.x, ua.y)
+    # light
+    elif u.type == UNIT_TYPE_NAME_LIGHT:
+        if ua.type == ACTION_TYPE_NONE:
+            return get_action_index(LightAction.DO_NONE)
+        elif ua.type in (ACTION_TYPE_MOVE, ACTION_TYPE_HARVEST, ACTION_TYPE_RETURN):
+            return get_action_index(LightAction(ua.parameter))
+        elif ua.type == ACTION_TYPE_ATTACK_LOCATION:
+            return get_action_index(LightAction(attack_trans(u.x, u.y, ua.x, ua.y)))
 
-        # ranged
-        elif u.type == UNIT_TYPE_NAME_RANGED:
-            pass
-    pass
+    # heavy
+    elif u.type == UNIT_TYPE_NAME_HEAVY:
+        if ua.type == ACTION_TYPE_NONE:
+            return get_action_index(HeavyAction.DO_NONE)
+        elif ua.type in (ACTION_TYPE_MOVE, ACTION_TYPE_HARVEST, ACTION_TYPE_RETURN):
+            return get_action_index(HeavyAction(ua.parameter))
+        elif ua.type == ACTION_TYPE_ATTACK_LOCATION:
+            return get_action_index(HeavyAction(attack_trans(u.x, u.y, ua.x, ua.y)))
+
+    # ranged
+    elif u.type == UNIT_TYPE_NAME_RANGED:
+        pass
+
+    return ACTION_TYPE_NONE
 
 
 def resource_encoder(amount, feature_length=8, amount_threshold=2):
@@ -510,7 +532,7 @@ def unit_feature_encoder(unit:Unit, map_height, map_width):
 def test_state_encoder():
     str_gs = '{"reward":150.0,"done":false,"validActions":[{"unit":{"type":"Worker", "ID":22, "player":0, "x":0, "y":4, "resources":0, "hitpoints":1},"unitActions":[{"type":1, "parameter":0} ,{"type":1, "parameter":2} ,{"type":0, "parameter":10}]},{"unit":{"type":"Worker", "ID":24, "player":0, "x":3, "y":4, "resources":0, "hitpoints":1},"unitActions":[{"type":1, "parameter":0} ,{"type":1, "parameter":1} ,{"type":1, "parameter":2} ,{"type":1, "parameter":3} ,{"type":0, "parameter":10}]}],"gs":{"time":187,"pgs":{"width":6,"height":6,"terrain":"000000000000000000000000000000000000","players":[{"ID":0, "resources":2},{"ID":1, "resources":5}],"units":[{"type":"Resource", "ID":0, "player":-1, "x":0, "y":0, "resources":229, "hitpoints":1},{"type":"Base", "ID":19, "player":1, "x":5, "y":5, "resources":0, "hitpoints":10},{"type":"Base", "ID":20, "player":0, "x":2, "y":2, "resources":0, "hitpoints":10},{"type":"Worker", "ID":22, "player":0, "x":0, "y":4, "resources":0, "hitpoints":1},{"type":"Worker", "ID":23, "player":0, "x":5, "y":4, "resources":0, "hitpoints":1},{"type":"Worker", "ID":24, "player":0, "x":3, "y":4, "resources":0, "hitpoints":1},{"type":"Worker", "ID":25, "player":0, "x":0, "y":1, "resources":1, "hitpoints":1},{"type":"Worker", "ID":26, "player":0, "x":1, "y":4, "resources":0, "hitpoints":1}]},"actions":[{"ID":20, "time":153, "action":{"type":4, "parameter":1, "unitType":"Worker"}},{"ID":26, "time":178, "action":{"type":1, "parameter":1}},{"ID":19, "time":180, "action":{"type":0, "parameter":10}},{"ID":25, "time":182, "action":{"type":1, "parameter":1}},{"ID":23, "time":185, "action":{"type":1, "parameter":3}}]}}'
     gs_wrapper = from_dict(data_class=GsWrapper, data=json.loads(str_gs))
-    print()
+    print(extract_record(gs_wrapper.gs, 0))
 
 
 def test_resource_encoder():
@@ -524,5 +546,5 @@ def test_resource_encoder():
 
 
 if __name__ == '__main__':
-    print(get_action_index(LightAction.DO_NONE))
+   test_state_encoder()
     # test_resource_encoder()

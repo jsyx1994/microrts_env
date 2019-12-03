@@ -8,6 +8,7 @@
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="library" name="lib" level="project" />
+    <orderEntry type="library" name="microrts-master" level="project" />
     <orderEntry type="module-library">
       <library name="JUnit4">
         <CLASSES>

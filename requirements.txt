@@ -1,5 +1,7 @@
+xmltodict
+dill
 cloudpickle==1.2.2
-dacite==0.0.26
+dacite==1.1.0
 dataclasses==0.7
 future==0.18.2
 gym==0.15.3

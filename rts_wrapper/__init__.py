@@ -81,3 +81,21 @@ register(
 
     )}
 )
+
+# eval
+register(
+    id='Eval-v0',
+    entry_point='rts_wrapper.envs:MicroRts',
+    kwargs={'config': Config(
+        ai1_type='socketAI',
+        ai2_type='passive',
+        map_path='maps/4x4/base4x4.xml',
+        height=4,
+        width=4,
+        render=True,
+        max_cycles=300,
+        max_episodes=10000,
+
+    )}
+
+)

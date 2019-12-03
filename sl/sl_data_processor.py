@@ -7,6 +7,7 @@ from algo.model import ActorCritic
 import torch
 import numpy as np
 from sl.play_buffer import PlayBuffer
+from algo.model import ActorCritic
 
 def load(path) -> Records:
     with open(path, 'rb') as f:
@@ -39,5 +40,14 @@ if __name__ == '__main__':
         curr_player = r.player
         shared_states = state_encoder(gs, curr_player)
         for a in actions:
-            storage.push(gs, a.unit, a.unitAction)
-    print(storage.sample(20))
+            storage.push(gs,curr_player, a.unit, a.unitAction)
+
+    ac = ActorCritic(8, 8)
+    d = storage.sample(128)
+    states, units, actions = d["Worker"]
+    # def actor_forward(self, actor_type: str, spatial_feature: Tensor, unit_feature: Tensor):
+
+    prob = ac.actor_forward('Worker', torch.from_numpy(states).float(), torch.from_numpy(units).float())
+    # actions = torch.zeros_like(actions).scatter_(0, actions)
+    print(actions)
+    # print(states.shape, unit_types.shape, units.shape, actions.shape)

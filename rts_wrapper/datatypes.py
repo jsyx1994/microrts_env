@@ -147,8 +147,8 @@ class RangedAction(Enum):
 action_collection = [BaseAction, BarracksAction, WorkerAction, LightAction, HeavyAction, RangedAction]
 
 AGENT_ACTIONS_MAP = {}
-for action in action_collection:
-    AGENT_ACTIONS_MAP[action.__type_name__] = action
+for _action in action_collection:
+    AGENT_ACTIONS_MAP[_action.__type_name__] = _action
 
 
 @dataclass
@@ -284,24 +284,26 @@ class PlayerAction:
 
 # for sl
 @dataclass
-class UUA:
+class UAA:
     unit: Unit
     unitAction: UnitAction
 
 
 @dataclass
 class Record:
+    """
+    all actions under one game state given the supervised target player
+    """
     gs: GameState
     player: int
-    actions: List[UUA]
+    actions: List[UAA]
 
 
 @dataclass
 class Records:
     records: List[Record]
+# /for sl
 
-from dacite import from_dict
-import json
 
 UTT_DICT = {}
 for t in from_dict(data_class=UnitTypeTable, data=json.loads(UTT_ORI)).unitTypes:

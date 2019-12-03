@@ -253,7 +253,11 @@ class ActorCritic(nn.Module):
         return x
 
     def actor_forward(self, actor_type: str, spatial_feature: Tensor, unit_feature: Tensor):
+        b_sz = spatial_feature.size(0)
         encoded_utt = torch.from_numpy(encoded_utt_dict[actor_type]).float().unsqueeze(0)
+
+        encoded_utt = encoded_utt.repeat(b_sz, 1)
+
         x = self._shared_forward(spatial_feature)
         x = torch.cat([x, encoded_utt, unit_feature], dim=1)
         x = self.actor_mlps(x)
