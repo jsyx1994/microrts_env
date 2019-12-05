@@ -65,6 +65,7 @@ class MicroRts(gym.Env):
             "--ai2_type", self.config.ai2_type,
             "--maxCycles", str(self.config.max_cycles),
             "--maxEpisodes", str(self.config.max_episodes),
+            "--period", str(self.config.period)
             # "more",
             # "options"
         ]
@@ -98,8 +99,8 @@ class MicroRts(gym.Env):
     def signal_wrapper(self, raw):
         curr_player = int(raw.split('\n')[0].split()[1])
         gs_wrapper = from_dict(data_class=GsWrapper, data=json.loads(raw.split('\n')[1]))
-        print(raw)
-        input()
+        # print(raw)
+        # input()
         observation = state_encoder(gs_wrapper.gs, curr_player)
         reward = gs_wrapper.reward
         done = gs_wrapper.done

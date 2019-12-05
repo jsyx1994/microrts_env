@@ -25,7 +25,7 @@ import java.io.*;
 public class GymInterface {
     private static long maxEpisodes;
     private static int timeBudget = 100;
-    private static int period = 1;
+    private static long period = 1;
 
     private static long maxCycles;
     private static long port;
@@ -49,6 +49,8 @@ public class GymInterface {
         map = cliArgs.switchValue("--map", System.getProperty("user.home") + "/microrts_env/maps/16x16/basesWorkers16x16.xml");
         maxEpisodes = Long.parseLong(cliArgs.switchValue("--maxEpisodes", "20000"));
         maxCycles = Long.parseLong(cliArgs.switchValue("--maxCycles", "5000"));
+        period = Long.parseLong(cliArgs.switchValue("--period", "1"));
+
         ai1_type = cliArgs.switchValue("--ai1_type","passive");
         ai2_type = cliArgs.switchValue("--ai2_type","passive");
 

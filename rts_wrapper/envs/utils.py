@@ -545,6 +545,8 @@ def test_resource_encoder():
     print(resource_encoder(14453))  # [0. 0. 0. 0. 0. 0. 0. 1.]
 
 
+encoded_utt_dict, encoded_utt_feature_size = utt_encoder(UTT_ORI)
+
 if __name__ == '__main__':
    test_state_encoder()
     # test_resource_encoder()

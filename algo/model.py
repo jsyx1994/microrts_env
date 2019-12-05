@@ -9,9 +9,7 @@ from torch import Tensor
 from rts_wrapper.datatypes import Unit
 from rts_wrapper.envs.utils import utt_encoder, unit_feature_encoder
 from torch.distributions import Categorical
-
-encoded_utt_dict, encoded_utt_feature_size = utt_encoder(UTT_ORI)
-
+from rts_wrapper.envs.utils import encoded_utt_feature_size
 
 class Flatten(nn.Module):
     def forward(self, x):
@@ -234,6 +232,11 @@ class ActorCritic(nn.Module):
             )
         })
 
+    def forward(self, spatial_feature: Tensor, unit_feature: Tensor, actor_type='Worker'):
+        value = self.critic_forward(spatial_feature)
+        pi = self.actor_forward(actor_type, spatial_feature, unit_feature)
+        return value, pi
+
     def _shared_forward(self, spatial_feature):
         x = self.shared_conv(spatial_feature)
         x = self.shared_linear(x)
@@ -253,13 +256,18 @@ class ActorCritic(nn.Module):
         return x
 
     def actor_forward(self, actor_type: str, spatial_feature: Tensor, unit_feature: Tensor):
-        b_sz = spatial_feature.size(0)
-        encoded_utt = torch.from_numpy(encoded_utt_dict[actor_type]).float().unsqueeze(0)
-
-        encoded_utt = encoded_utt.repeat(b_sz, 1)
+        # b_sz = spatial_feature.size(0)
+        #
+        # if training:
+        #     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        # else:
+        #     device = torch.device("cpu")
+        #
+        # encoded_utt = encoded_utt.repeat(b_sz, 1).to(device)
 
         x = self._shared_forward(spatial_feature)
-        x = torch.cat([x, encoded_utt, unit_feature], dim=1)
+
+        x = torch.cat([x, unit_feature], dim=1)
         x = self.actor_mlps(x)
         probs = self.actor_out[actor_type](x)
         return probs

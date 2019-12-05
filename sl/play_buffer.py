@@ -58,11 +58,12 @@ class PlayBuffer(object):
 
         for key in ans:
             states, units, actions = [], [], []
-            for v in ans[key]:
-                states.append(v[0])
-                units.append(v[1])
-                actions.append(v[2])
-            ans[key] = np.array(states), np.array(units), np.array(actions)
+            if ans[key]:
+                for v in ans[key]:
+                    states.append(v[0])
+                    units.append(v[1])
+                    actions.append(v[2])
+                ans[key] = np.array(states), np.array(units), np.array(actions)
 
         return ans
 
@@ -83,6 +84,7 @@ class PlayBuffer(object):
         return None
 
     def sample(self, batch_size, factorize=True):
+        # random.seed(1)
         idxes = [random.randint(0, len(self._storage)) for _ in range(batch_size)]
         encoded_samples = self._encode_sample(idxes)
         return self._factorize(batch_size, encoded_samples) if factorize else encoded_samples

@@ -10,7 +10,7 @@ from rts_wrapper.envs.utils import extract_record
 import time
 import dill
 base_dir = '~/'
-tournament_dir = '/home/toby/tournament_6/traces'
+tournament_dir = '/home/toby/tournament_5/traces'
 saving_dir = "/home/toby/rcds.pck"
 
 
@@ -32,7 +32,7 @@ def parse_xml(xml_bstr):
     # xdict = xmltodict.parse(ET.tostring(tree.getroot()))
     st = time.time()
     xdict = xmltodict.parse(xml_bstr)
-    print(time.time() - st)
+    # print(time.time() - st)
     return xdict['rts.Trace']['entries']['rts.TraceEntry']
 
 
@@ -128,9 +128,13 @@ def main():
     # TODO: arg parse
     start = time.time()
     gss = []
+    cnt = 0
     for f_n in load_zips(tournament_dir):
         with ZipFile(os.path.join(tournament_dir, f_n)) as myzip:
             with myzip.open('game.xml') as myfile:
+                cnt += 1
+                if cnt % 100 == 0:
+                    print('Game No.{} processed'.format(cnt))
                 for x in parse_xml(myfile.read()):
                     gss.append(parse_gs(x))
 
