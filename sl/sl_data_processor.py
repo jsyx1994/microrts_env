@@ -10,7 +10,6 @@ from algo.model import ActorCritic
 from algo.eval import evaluate_game
 
 
-
 def load(path) -> Records:
     with open(path, 'rb') as f:
         rcd = dill.load(f)
@@ -20,6 +19,7 @@ def load(path) -> Records:
 def get_data() -> PlayBuffer:
     storage = PlayBuffer()
     rcds = load(saving_dir)
+    print("total records:{}".format(len(rcds)))
     for r in rcds.records:
         gs = r.gs
         actions = r.actions

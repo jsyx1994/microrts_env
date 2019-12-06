@@ -1,11 +1,9 @@
 import gym
 import torch
-from rts_wrapper.envs.utils import unit_feature_encoder, network_action_translator
-from algo.model import ActorCritic
-from test import action_sampler_v1
+from rts_wrapper.envs.utils import action_sampler_v1
 
 
-def evaluate_game(eval_env: str, model):
+def evaluate_game(eval_env: str, model, mode="stochastic"):
     device = torch.device("cpu")
     model.to(device)
     env = gym.make(eval_env)
@@ -15,7 +13,7 @@ def evaluate_game(eval_env: str, model):
             # action = env.sample(info["unit_valid_actions"])
             # action = env.network_simulate(info_t["unit_valid_actions"])
             # action = action_sampler_v0(actor, critic, state_t, info_t)
-            action = action_sampler_v1(model, obs_t, info_t)
+            action = action_sampler_v1(model, obs_t, info_t, mode)
             # print(action)
             state_tp1, reward, done, info_tp1 = env.step(action)
 

@@ -2,7 +2,7 @@ import gym
 import rts_wrapper
 import os
 from rts_wrapper.datatypes import *
-from rts_wrapper.envs.utils import *
+from rts_wrapper.envs.utils import unit_feature_encoder,network_action_translator, encoded_utt_dict
 import torch
 from algo.replay_buffer import ReplayBuffer
 
@@ -11,7 +11,6 @@ from algo.replay_buffer import ReplayBuffer
 # env.action_space.sample()
 
 from algo.model import CNNBase, Critic, Actor, ActorCritic
-from rts_wrapper.envs.utils import encoded_utt_dict, encoded_utt_feature_size
 
 
 def initialize_network(height, width, channel):
@@ -59,7 +58,6 @@ def action_sampler_v0(actor_net: Actor, critic_net: Critic, state, info) -> List
 # example
 
 
-
 def action_sampler_v1(model:ActorCritic, state, info, mode='stochastic'):
     assert mode in ['stochastic', 'deterministic']
     time_stamp = info["time_stamp"]
@@ -94,14 +92,15 @@ if __name__ == '__main__':
     # env = gym.make("OneWorkerAndBaseWithResources-v0")
     map_height, map_width = env.config.height, env.config.width
     model = ActorCritic(map_height, map_width)
+    # model.load_state_dict(torch.load("./models/test.pth"))
     replay_buffer = ReplayBuffer(100)
     for _ in range(env.config.max_episodes):
         obs_t, _, done, info_t = env.reset()  # deserting the reward
         while not done:
             # action = env.sample(info["unit_valid_actions"])
-            action = env.network_simulate(info_t["unit_valid_actions"])
+            # action = env.network_simulate(info_t["unit_valid_actions"])
             # action = action_sampler_v0(actor, critic, state_t, info_t)
-            # action = action_sampler_v1(model, obs_t, info_t)
+            action = action_sampler_v1(model, obs_t, info_t)
             # print(action)
             state_tp1, reward, done, info_tp1 = env.step(action)
 

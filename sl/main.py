@@ -1,6 +1,5 @@
 from torch.utils.tensorboard import SummaryWriter
 
-from algo.eval import evaluate_game
 from rts_wrapper.envs.utils import encoded_utt_dict
 from algo.model import ActorCritic
 from torch import optim
@@ -15,16 +14,14 @@ def main():
     ac = ActorCritic(6, 6)
     writer = SummaryWriter()
 
-    # TODO: complete the forward function in ActorCritic
-    # writer.add_graph(ac, [torch.randn(1, 21, 6, 6), torch.randn(1, 43)])
 
     # input()
     ac.to(device)
 
-    iteration = 2
+    iteration = 100000
     batch_size = 128
     criteria = torch.nn.NLLLoss()
-    optimizer = optim.Adam(ac.parameters(), lr=10e-5)
+    optimizer = optim.Adam(ac.parameters(), lr=10e-6)
 
     for i in range(iteration):
 
@@ -61,8 +58,7 @@ def main():
         optimizer.step()
         # print(prob[i])
 
-    torch.save(ac.state_dict(), 'models/test.pth')
-    evaluate_game("Eval-v0", ac)
+    torch.save(ac.state_dict(), '../models/test.pth')
 
 
 if __name__ == '__main__':

@@ -72,9 +72,9 @@ register(
     kwargs={'config': Config(
         ai1_type='socketAI',
         ai2_type='passive',
-        map_path='maps/4x4/base4x4.xml',
-        height=4,
-        width=4,
+        map_path='maps/6x6/baseWorkerResources6x6.xml',
+        height=6,
+        width=6,
         render=True,
         max_cycles=300,
         max_episodes=10000,
@@ -87,13 +87,14 @@ register(
     id='Eval-v0',
     entry_point='rts_wrapper.envs:MicroRts',
     kwargs={'config': Config(
+        period=20,
         ai1_type='socketAI',
-        ai2_type='passive',
-        map_path='maps/4x4/base4x4.xml',
-        height=4,
-        width=4,
+        ai2_type='',
+        map_path='maps/6x6/baseWorkerResources6x6.xml',
+        height=6,
+        width=6,
         render=True,
-        max_cycles=300,
+        max_cycles=3000,
         max_episodes=10000,
 
     )}

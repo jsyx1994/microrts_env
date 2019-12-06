@@ -8,10 +8,38 @@ from rts_wrapper.datatypes import *
 import json
 import numpy as np
 import time
+import torch
 
 rd = np.random
 rd.seed()
 
+
+def action_sampler_v1(model, state, info, mode='stochastic'):
+    assert mode in ['stochastic', 'deterministic']
+    time_stamp = info["time_stamp"]
+    # if time_stamp % 1 != 0:
+    #     return []
+    unit_valid_actions = info["unit_valid_actions"]  # unit and its valid actions
+    height, width = info["map_size"]
+    player_resources = info["player_resources"]  # global resource situation, default I'm player 0
+    current_player = info["current_player"]
+
+    spatial_feature = torch.from_numpy(state).float().unsqueeze(0)
+    samples = []
+    for uva in unit_valid_actions:
+        u  = uva.unit
+        unit_feature = torch.from_numpy(unit_feature_encoder(u, height, width)).float().unsqueeze(0)
+        encoded_utt = torch.from_numpy(encoded_utt_dict[u.type]).float().unsqueeze(0)
+
+        unit_feature = torch.cat([unit_feature, encoded_utt], dim=1)
+        if mode == 'stochastic':
+            sampled_unit_action = model.stochastic_action_sampler(u.type, spatial_feature, unit_feature)
+        elif mode == 'deterministic':
+            sampled_unit_action = model.deterministic_action_sampler(u.type, spatial_feature, unit_feature)
+
+        samples.append((uva, sampled_unit_action))
+
+    return network_action_translator(samples)
 
 def get_available_port():
     tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)

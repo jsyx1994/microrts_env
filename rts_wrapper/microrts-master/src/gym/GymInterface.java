@@ -66,7 +66,12 @@ public class GymInterface {
     private static void socketVSbuiltIn(UnitTypeTable utt) throws Exception {
         GymSocketAI ai1 = new GymSocketAI(timeBudget, 0, "127.0.0.1", (int) port, GymSocketAI.LANGUAGE_JSON, utt);
         AI ai2 = new PassiveAI();
-
+        switch (ai2_type){
+            case "WorkerRush"   : ai2 = new WorkerRush(utt);    break;
+            case "Random"       : ai2 = new RandomAI();         break;
+            case "RandomBiased" : ai2 = new RandomBiasedAI(utt);break;
+//            default:            : ai2 = new PassiveAI();        break;
+        }
 
         for (int i = 0; i < maxEpisodes; i++) {
             PhysicalGameState pgs = PhysicalGameState.load(map, utt);
@@ -113,6 +118,7 @@ public class GymInterface {
             w.dispose();
         }
     }
+
 
     public static void main(String[] args) throws Exception {
         parseArgs(args);
