@@ -100,6 +100,7 @@ class Critic(nn.Module):
         return x
 
 
+
 class Actor(nn.Module):
     def __init__(self, base_out_size, unit_feature_size=18, scalar_feature_size=2):
         super(Actor, self).__init__()
@@ -143,6 +144,7 @@ class Actor(nn.Module):
 
         })
 
+
     def deterministic_action_sampler(self, actor_type: str, base_out: torch.Tensor, unit_feature: torch.Tensor,
                                      scalar_feature: torch.Tensor):
         """
@@ -170,19 +172,19 @@ class Actor(nn.Module):
         action = list(AGENT_ACTIONS_MAP[actor_type])[idx]
         return action
 
-    def forward(self, actor_type: str, base_out: torch.Tensor, unit_feature: torch.Tensor,
-                scalar_feature: torch.Tensor):
-        encoded_utt = torch.from_numpy(encoded_utt_dict[actor_type]).float().unsqueeze(0)
-        # encoded_unit = torch.from_numpy(unit_feature).float().unsqueeze(0)
-
-        x1 = self.base_out_layer(base_out)
-        x2 = self.utt_embedding_layer(torch.cat([encoded_utt, unit_feature], dim=1))
-        x3 = scalar_feature
-        x = torch.cat([x1, x2, x3], dim=1)
-        x = self.pre_gru_layer(x)
-
-        output = self.actors[actor_type](x)
-        return output
+    # def forward(self, actor_type: str, base_out: torch.Tensor, unit_feature: torch.Tensor,
+    #             scalar_feature: torch.Tensor):
+    #     encoded_utt = torch.from_numpy(encoded_utt_dict[actor_type]).float().unsqueeze(0)
+    #     # encoded_unit = torch.from_numpy(unit_feature).float().unsqueeze(0)
+    #
+    #     x1 = self.base_out_layer(base_out)
+    #     x2 = self.utt_embedding_layer(torch.cat([encoded_utt, unit_feature], dim=1))
+    #     x3 = scalar_feature
+    #     x = torch.cat([x1, x2, x3], dim=1)
+    #     x = self.pre_gru_layer(x)
+    #
+    #     output = self.actors[actor_type](x)
+    #     return output
 
 
 class ActorCritic(nn.Module):
@@ -208,7 +210,7 @@ class ActorCritic(nn.Module):
         )
         self.self_attn = nn.Sequential(
             Pic2Vector(),
-            nn.TransformerEncoder(encoder_layer=nn.TransformerEncoderLayer(d_model=64, nhead=8), num_layers=4), nn.ReLU()
+            nn.TransformerEncoder(encoder_layer=nn.TransformerEncoderLayer(d_model=64, nhead=8), num_layers=1), nn.ReLU()
         )
         self.shared_linear = nn.Sequential(
             Flatten(),
@@ -252,7 +254,7 @@ class ActorCritic(nn.Module):
     def _shared_forward(self, spatial_feature):
         x = self.shared_conv(spatial_feature)
         x = self.self_attn(x)
-        print(x.shape)
+        # print(x.shape)
         x = self.shared_linear(x)
         return x
 

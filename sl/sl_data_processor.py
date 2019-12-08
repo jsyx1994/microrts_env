@@ -19,7 +19,7 @@ def load(path) -> Records:
 def get_data() -> PlayBuffer:
     storage = PlayBuffer()
     rcds = load(saving_dir)
-    print("total records:{}".format(len(rcds)))
+    print("total records:{}".format(rcds.records.__len__()))
     for r in rcds.records:
         gs = r.gs
         actions = r.actions

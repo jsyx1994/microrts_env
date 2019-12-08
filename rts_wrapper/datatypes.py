@@ -248,10 +248,10 @@ class Config:
     max_cycles: Optional[int] = 5000
     max_episodes: Optional[int] = 10000
     period: Optional[int] = 5
-    render: Optional[bool] = True
+    render: Optional[int] = 1
     utt: Optional[dict] = from_dict(data_class=UnitTypeTable, data=json.loads(UTT_ORI))
     # auto_port: Optional[bool] = False
-    client_port: Optional[int] = 0
+    # client_port: Optional[int] = 0
     microrts_path: Optional[str] = "~/microrts_env"
     microrts_repo_path: Optional[str] = ""
     client_ip: Optional[str] = "127.0.0.1"

@@ -7,6 +7,7 @@ def evaluate_game(eval_env: str, model, mode="stochastic"):
     device = torch.device("cpu")
     model.to(device)
     env = gym.make(eval_env)
+
     for _ in range(env.config.max_episodes):
         obs_t, _, done, info_t = env.reset()  # deserting the reward
         while not done:

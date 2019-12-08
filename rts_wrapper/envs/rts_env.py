@@ -2,13 +2,10 @@ import gym
 import os
 from gym import spaces
 from subprocess import Popen, PIPE
-import socket
 from rts_wrapper.envs.utils import *
-from .space import DictSpace
 import numpy as np
 from rts_wrapper.datatypes import *
 from threading import Thread
-
 
 
 class MicroRts(gym.Env):
@@ -30,7 +27,7 @@ class MicroRts(gym.Env):
         # for action in action_collection:
         #     self.unit_action_map[action.__type_name__] = action
 
-        self.action_space = DictSpace({
+        self.action_space = spaces.Dict({
             'Base': spaces.Discrete(BaseAction.__members__.items().__len__()),
             'Barracks': spaces.Discrete(BarracksAction.__members__.items().__len__()),
             'Worker': spaces.Discrete(WorkerAction.__members__.items().__len__()),
@@ -59,13 +56,15 @@ class MicroRts(gym.Env):
             "-jar",
             os.path.join(os.path.expanduser('~/microrts_env/rts_wrapper'),
                          'microrts-master/out/artifacts/microrts_master_jar/microrts-master.jar'),
-            "--port", str(self.port),
             "--map", os.path.join(os.path.expanduser(self.config.microrts_path), self.config.map_path),
             "--ai1_type", self.config.ai1_type,
+            "--port1", str(self.port),
             "--ai2_type", self.config.ai2_type,
+            # "--port2", str(self.port),
             "--maxCycles", str(self.config.max_cycles),
             "--maxEpisodes", str(self.config.max_episodes),
-            "--period", str(self.config.period)
+            "--period", str(self.config.period),
+            "--render", str(self.config.render),
             # "more",
             # "options"
         ]

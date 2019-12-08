@@ -18,7 +18,7 @@ def main():
     # input()
     ac.to(device)
 
-    iteration = 100000
+    iteration = 1000000
     batch_size = 128
     criteria = torch.nn.NLLLoss()
     optimizer = optim.Adam(ac.parameters(), lr=10e-6)
@@ -58,7 +58,7 @@ def main():
         optimizer.step()
         # print(prob[i])
 
-    torch.save(ac.state_dict(), '../models/test.pth')
+    torch.save(ac.state_dict(), '../models/100k.pth')
 
 
 if __name__ == '__main__':

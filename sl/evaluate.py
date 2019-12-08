@@ -11,7 +11,7 @@ def load_model(path, height, width) -> ActorCritic:
 
 
 def main():
-    model = load_model(os.path.join('../models', 'test.pth'), 6, 6)
+    model = load_model(os.path.join('../models', '100k.pth'), 6, 6)
     evaluate_game('Eval-v0', model)
 
 

@@ -86,13 +86,13 @@ def action_sampler_v1(model:ActorCritic, state, info, mode='stochastic'):
     return network_action_translator(samples)
 
 
-if __name__ == '__main__':
+def test_pve():
     env = gym.make("CurriculumBaseWorker-v0")
     # env = gym.make("Microrts-v0")
     # env = gym.make("OneWorkerAndBaseWithResources-v0")
     map_height, map_width = env.config.height, env.config.width
     model = ActorCritic(map_height, map_width)
-    # model.load_state_dict(torch.load("./models/test.pth"))
+    # model.load_state_dict(torch.load("./models/100k.pth"))
     replay_buffer = ReplayBuffer(100)
     for _ in range(env.config.max_episodes):
         obs_t, _, done, info_t = env.reset()  # deserting the reward
@@ -104,13 +104,40 @@ if __name__ == '__main__':
             # print(action)
             state_tp1, reward, done, info_tp1 = env.step(action)
 
-            obs_t, info_t = state_tp1, info_tp1   # assign new state and info from environment
+            obs_t, info_t = state_tp1, info_tp1  # assign new state and info from environment
             # replay_buffer.push(state_t,info_t,ac)
 
         winner = env.get_winner()  # required
         print(winner)
 
     env.close()
+
+
+def test_self_play():
+    env = gym.make("SelfPlayOneWorkerAndBaseWithResources-v0")
+    map_height, map_width = env.config.height, env.config.width
+    model = ActorCritic(map_height, map_width)
+    # model.load_state_dict(torch.load("./models/100k.pth"))
+    for _ in range(env.config.max_episodes):
+        obs_t, _, done, info_t = env.reset()  # deserting the reward
+        while not done:
+            # action = env.sample(info["unit_valid_actions"])
+            # action = env.network_simulate(info_t["unit_valid_actions"])
+            # action = action_sampler_v0(actor, critic, state_t, info_t)
+            action = action_sampler_v1(model, obs_t, info_t)
+            # print(action)
+            state_tp1, reward, done, info_tp1 = env.step(action)
+
+            obs_t, info_t = state_tp1, info_tp1  # assign new state and info from environment
+            # replay_buffer.push(state_t,info_t,ac)
+
+        winner = env.get_winner()  # required
+        print(winner)
+
+    env.close()
+
+if __name__ == '__main__':
+    test_pve()
 
 # print(rts_wrapper.base_dir_path)
 

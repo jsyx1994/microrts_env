@@ -23,9 +23,9 @@ register(
     entry_point='rts_wrapper.envs:MicroRts',
     kwargs={'config': Config(
         ai1_type='socketAI',
-        ai2_type='passive',
+        ai2_type='Passive',
         map_path='maps/16x16/basesWorkers16x16.xml',
-        render=True,
+        render=1,
         height=16,
         width=16,
         max_cycles=2000,
@@ -39,11 +39,11 @@ register(
     entry_point='rts_wrapper.envs:MicroRts',
     kwargs={'config': Config(
         ai1_type='socketAI',
-        ai2_type='passive',
+        ai2_type='Passive',
         map_path='maps/6x6/baseTwoWorkersMaxResources6x6.xml',
         height=6,
         width=6,
-        render=True,
+        render=1,
         max_cycles=3000,
         max_episodes=10000,
 
@@ -55,11 +55,11 @@ register(
     entry_point='rts_wrapper.envs:MicroRts',
     kwargs={'config': Config(
         ai1_type='socketAI',
-        ai2_type='passive',
+        ai2_type='Passive',
         map_path='maps/4x4/baseTwoWorkers4x4.xml',
         height=4,
         width=4,
-        render=True,
+        render=1,
         max_cycles=300,
         max_episodes=10000,
 
@@ -71,15 +71,32 @@ register(
     entry_point='rts_wrapper.envs:MicroRts',
     kwargs={'config': Config(
         ai1_type='socketAI',
-        ai2_type='passive',
+        ai2_type='Passive',
         map_path='maps/6x6/baseWorkerResources6x6.xml',
         height=6,
         width=6,
-        render=True,
+        render=1,
         max_cycles=300,
         max_episodes=10000,
 
     )}
+)
+# self-play
+register(
+    id="SelfPlayOneWorkerAndBaseWithResources-v0",
+    entry_point='rts_wrapper.envs:MicroRts',
+    kwargs={'config': Config(
+        ai1_type="socketAI",
+        ai2_type="socketAI",
+
+        map_path="maps/6x6/baseWorkerResources6x6.xml",
+        height=6,
+        width=6,
+        render=1,
+        max_cycles=3000,
+        max_episodes=10000,
+
+        )}
 )
 
 # eval
@@ -87,15 +104,15 @@ register(
     id='Eval-v0',
     entry_point='rts_wrapper.envs:MicroRts',
     kwargs={'config': Config(
-        period=20,
+        period=1,
         ai1_type='socketAI',
-        ai2_type='',
+        ai2_type='Random',
         map_path='maps/6x6/baseWorkerResources6x6.xml',
         height=6,
         width=6,
-        render=True,
+        render=0,
         max_cycles=3000,
-        max_episodes=10000,
+        max_episodes=1000,
 
     )}
 
