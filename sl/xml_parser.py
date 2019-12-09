@@ -10,8 +10,8 @@ from rts_wrapper.envs.utils import extract_record
 import time
 import dill
 base_dir = '~/'
-tournament_dir = '/home/toby/tournament_5/traces'
-saving_dir = "/home/toby/rcds.pck"
+tournament_dir = os.path.join(base_dir, "tournament_5/traces")
+saving_dir = os.path.join(base_dir, "rcds.pck")
 
 
 def fix_keys(odict):
@@ -38,7 +38,7 @@ def parse_xml(xml_bstr):
 
 def parse_gs(gs):
     """
-    parse game state
+    parse game state from traces
     :param gs:
     :return:
     """
@@ -95,7 +95,7 @@ def parse_gs(gs):
     # gs = json.loads(json.dumps(gs))
     # print(gs)
 
-    # TODO: this cost a lot time!
+    # TODO: this costs a lot time!
     ans = from_dict(data_class=GameState, data=gs)
     # print(odict)
 
@@ -129,8 +129,8 @@ def main():
     start = time.time()
     gss = []
     cnt = 0
-    for f_n in load_zips(tournament_dir):
-        with ZipFile(os.path.join(tournament_dir, f_n)) as myzip:
+    for f_n in load_zips(os.path.expanduser(tournament_dir)):
+        with ZipFile(os.path.join(os.path.expanduser(tournament_dir), f_n)) as myzip:
             with myzip.open('game.xml') as myfile:
                 cnt += 1
                 if cnt % 100 == 0:
@@ -155,7 +155,7 @@ def main():
     # f.close()
     # assert x == records[0]
     # """
-    store(records, saving_dir)
+    store(records, os.path.expanduser(saving_dir))
 
 
 if __name__ == '__main__':

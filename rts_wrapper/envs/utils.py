@@ -66,6 +66,49 @@ def pa_to_jsonable(pas: List[PlayerAction]) -> str:
     return json.dumps(ans)
 
 
+def signal_wrapper(raw):
+    """
+    wrap useful info form raw
+    :return: observation, reward, done, info
+    """
+    curr_player = int(raw.split('\n')[0].split()[1])
+    gs_wrapper = from_dict(data_class=GsWrapper, data=json.loads(raw.split('\n')[1]))
+    # print(raw)
+    # input()
+    observation = state_encoder(gs_wrapper.gs, curr_player)
+    reward = gs_wrapper.reward
+    done = gs_wrapper.done
+    # self.game_time = gs_wrapper.gs.time
+    info = {
+        "unit_valid_actions": gs_wrapper.validActions,  # friends and their valid actions
+        # "units_list": [u for u in gs_wrapper.gs.pgs.units],
+        # "enemies_actions": None,
+        "current_player": curr_player,
+        "player_resources": [p.resources for p in gs_wrapper.gs.pgs.players],
+        "map_size": [gs_wrapper.gs.pgs.height, gs_wrapper.gs.pgs.width],
+        "time_stamp": gs_wrapper.gs.time,
+    }
+    return observation, reward, done, info
+
+
+def network_simulator(unit_valid_actions: List[UnitValidAction]):
+    """
+    :param unit_valid_actions:
+    :return: choice for every unit, adding UVA to check validation later
+    """
+    unit_validaction_choices = []
+    for uva in unit_valid_actions:
+        # if uva.unit.type == "Worker":
+        #     choice = WorkerAction.DO_LAY_BARRACKS
+        # else:
+        choice = rd.choice(list(AGENT_ACTIONS_MAP[uva.unit.type]))
+        # (choice) BaseAction.DO_NONE.name, BaseAction.DO_NONE.value
+        unit_validaction_choices.append((uva, choice))
+        return network_action_translator(unit_validaction_choices)
+
+    return unit_validaction_choices
+
+
 def extract_record(gs: GameState, sl_target: int) -> Record:
     """
     get the target players' (state - actions) pair
@@ -440,9 +483,7 @@ def game_action_translator(u: Unit, ua: UnitAction):
             if (x + DIRECTION_OFFSET_X[i] == _x) and (y + DIRECTION_OFFSET_Y[i] == _y):
                 return i
 
-
     if   u.type == UNIT_TYPE_NAME_BASE:
-
         if   ua.type == ACTION_TYPE_NONE:
             return get_action_index(BaseAction.DO_NONE)
 

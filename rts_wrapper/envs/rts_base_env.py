@@ -10,10 +10,10 @@ from rts_wrapper.envs.utils import network_action_translator, get_available_port
 from rts_wrapper.envs.player import Player
 
 
-class BaseEnv(gym.envs):
+class BaseEnv(gym.Env):
     setup_commands = None
     config = None
-    players = []
+    # players = []
 
     def __init__(self, config: Config):
         """
@@ -22,6 +22,7 @@ class BaseEnv(gym.envs):
         """
         self.config = config
         self._init_client()
+        # self._counting_players()
         self.action_space = ({
             'Base': spaces.Discrete(BaseAction.__members__.items().__len__()),
             'Barracks': spaces.Discrete(BarracksAction.__members__.items().__len__()),
@@ -31,6 +32,22 @@ class BaseEnv(gym.envs):
             'Ranged': spaces.Discrete(RangedAction.__members__.items().__len__()),
         })
 
+    @property
+    def map_size(self):
+        return self.config.height, self.config.width
+
+    @property
+    def max_episodes(self):
+        return self.config.max_episodes
+
+    @property
+    def ai1_type(self):
+        return self.config.ai1_type
+
+    @property
+    def ai2_type(self):
+        return self.config.ai2_type
+
     def _add_commands(self, option, args):
         assert isinstance(option, str), "Option should be string"
         assert option.startswith("--"), "Invalid option"
@@ -38,17 +55,6 @@ class BaseEnv(gym.envs):
 
         self.setup_commands.append(option)
         self.setup_commands.append(args)
-
-    def get_players(self):
-        return self.player1, self.player2
-
-    def _counting_players(self):
-        if self.config.ai1_type.startswith("socket"):
-            player = Player(0, self.config.client_ip, get_available_port())
-            self.players.append(player)
-        if self.config.ai2_type.startswith("socket"):
-            player = Player(1, self.config.client_ip, get_available_port())
-            self.players.append(player)
 
     def _init_client(self):
         """
@@ -105,17 +111,16 @@ class BaseEnv(gym.envs):
             print("skip")
             return unit_validaction_choices
 
-    def step(self, *args):
+    def step(self, action):
         raise NotImplementedError
 
-    def reset(self, *args):
+    def reset(self, **kwargs):
+        """
+        all players say hello to server
+        """
         raise NotImplementedError
 
     def render(self, mode='human'):
         pass
-
-
-
-
 
 

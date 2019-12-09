@@ -84,7 +84,7 @@ register(
 # self-play
 register(
     id="SelfPlayOneWorkerAndBaseWithResources-v0",
-    entry_point='rts_wrapper.envs:MicroRts',
+    entry_point='rts_wrapper.envs:BattleEnv',
     kwargs={'config': Config(
         ai1_type="socketAI",
         ai2_type="socketAI",
@@ -110,7 +110,7 @@ register(
         map_path='maps/6x6/baseWorkerResources6x6.xml',
         height=6,
         width=6,
-        render=0,
+        render=1,
         max_cycles=3000,
         max_episodes=1000,
 

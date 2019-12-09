@@ -64,12 +64,12 @@ UTT_ORI = '{"moveConflictResolutionStrategy":3,"unitTypes":[{"ID":0, "name":"Res
           '"canAttack":true, "produces":[], "producedBy":["Barracks"]}]} '
 
 
-# @dataclass
-# class LearningSignal:
-#     reward: float
-#     observation: List[List[List[int]]]
-#     done: bool
-#     info: Dict
+@dataclass
+class Observations:
+    reward: float
+    observation: Any
+    done: bool
+    info: Dict
 
 
 class BaseAction(Enum):
