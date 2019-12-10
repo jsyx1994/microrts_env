@@ -115,5 +115,21 @@ register(
         max_episodes=1000,
 
     )}
+)
 
+# test
+register(
+    id="LargeMapTest-v0",
+    entry_point='rts_wrapper.envs:BattleEnv',
+    kwargs={'config': Config(
+        ai1_type="socketAI",
+        ai2_type="socketAI",
+
+        map_path="maps/16x16/basesWorkers16x16.xml",
+        height=16,
+        width=16,
+        render=1,
+        max_cycles=5000,
+        max_episodes=10000,
+        )}
 )

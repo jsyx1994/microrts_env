@@ -2,6 +2,7 @@ from rts_wrapper import Config
 from rts_wrapper.envs import MicroRts
 import gym
 from multiprocessing import Process, Pool
+from threading import  Thread
 from multiprocessing.pool import ThreadPool
 from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 
@@ -14,7 +15,6 @@ from dacite import from_dict
 
 class BattleEnv(BaseEnv):
     players = []
-    _p_threads_pool = None
 
     @property
     def players_num(self):
@@ -22,20 +22,26 @@ class BattleEnv(BaseEnv):
 
     def __init__(self, config):
         super(BattleEnv, self).__init__(config)
+        self.DEBUG = False
         self._counting_players()
-        self._p_threads_pool = Pool(len(self.players))
 
-        # do anything done before calling start_client
-        Process(target=self.start_client).start()
+        if not self.DEBUG:
+            Thread(target=self.start_client).start()
         self._players_join()
 
     def _counting_players(self):
         if self.ai1_type.startswith("socket"):
-            player = Player(0, self.config.client_ip, get_available_port())
+            player = Player(0, self.config.client_ip, 9898 if self.DEBUG else get_available_port())
+            # player = Player(0, self.config.client_ip, get_available_port())
             self._add_commands("--port" + str(1 + player.id), str(player.port))
             self.players.append(player)
         if self.ai2_type.startswith("socket"):
-            player = Player(1, self.config.client_ip, get_available_port())
+            player = Player(1, self.config.client_ip, 9898 if self.DEBUG else get_available_port())
+
+            # if self.DEBUG:
+            #     player = Player(1, self.config.client_ip, 8787)
+            # else:
+            #     player = Player(1, self.config.client_ip, get_available_port())
             self._add_commands("--port" + str(1 + player.id), str(player.port))
             self.players.append(player)
 
@@ -58,30 +64,15 @@ class BattleEnv(BaseEnv):
         local env should using Threads to avoid dead lock, while remote needn't
         """
         import time
-        st = time.time()
-        print(time.time() - st)
+        for i in range(self.players_num):
+            self.players[i].act(action[i])
+            # time.sleep(.1)
 
-        thread_num = len(self.players)
-        signals_threads = [self._p_threads_pool.apply_async(self.players[i].act, (action[i],)) for i in range(thread_num)]
-        signals_res = [res.get() for res in signals_threads]
-
-        st = time.time()
-        # self._p_threads_pool.terminate()
-
-        print(time.time() - st)
-
-        # signals_res = []
-        # with ProcessPoolExecutor(max_workers=thread_num) as e:
-        #     for i in range(thread_num):
-        #         future = e.submit(self.players[i].act, action[i])
-        #         signals_res.append(future.result())
-        # # print(signals_res)
-        return [self._obs2dataclass(sig) for sig in signals_res]
+        signals_res = [self._obs2dataclass(player.observe()) for player in self.players]
+        return signals_res
 
     def reset(self, **kwargs):
-        signals = []
-        for player in self.players:
-            signals.append(self._obs2dataclass(player.reset()))
+        signals = [self._obs2dataclass(player.reset()) for player in self.players]
         return signals
 
     def get_winner(self):
@@ -92,11 +83,12 @@ class BattleEnv(BaseEnv):
         1: player 1
         :return:
         """
-        return self.conn.recv(1024).decode('utf-8')
+        for p in self.players:
+            p.expect()
 
 
 def main():
-    env = gym.make("SelfPlayOneWorkerAndBaseWithResources-v0")
+    env = gym.make("LargeMapTest-v0")
     players = env.players
 
     for _ in range(env.max_episodes):
@@ -108,10 +100,11 @@ def main():
                 actions.append(network_simulator(obses[i].info["unit_valid_actions"]))
             obses = env.step(actions)
             # print(obses)
-        for i in range(len(players)):
-            winner = env.get_winner()
+        winner = env.get_winner()
+        print(winner)
 
     print(env.setup_commands)
+
 
 if __name__ == '__main__':
    main()

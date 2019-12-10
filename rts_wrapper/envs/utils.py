@@ -104,9 +104,7 @@ def network_simulator(unit_valid_actions: List[UnitValidAction]):
         choice = rd.choice(list(AGENT_ACTIONS_MAP[uva.unit.type]))
         # (choice) BaseAction.DO_NONE.name, BaseAction.DO_NONE.value
         unit_validaction_choices.append((uva, choice))
-        return network_action_translator(unit_validaction_choices)
-
-    return unit_validaction_choices
+    return network_action_translator(unit_validaction_choices)
 
 
 def extract_record(gs: GameState, sl_target: int) -> Record:

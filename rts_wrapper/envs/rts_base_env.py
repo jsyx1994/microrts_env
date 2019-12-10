@@ -13,6 +13,7 @@ from rts_wrapper.envs.player import Player
 class BaseEnv(gym.Env):
     setup_commands = None
     config = None
+    DEBUG = False
     # players = []
 
     def __init__(self, config: Config):
